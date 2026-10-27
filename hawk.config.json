@@ -1,0 +1,11 @@
+{
+  "logChannelId": "",
+  "pollSeconds": 5,
+  "deleteThreshold": 3,
+  "autoRestore": true,
+  "joinThreshold": 8,
+  "joinWindowSeconds": 15,
+  "spamThreshold": 7,
+  "mentionThreshold": 5,
+  "servers": {}
+}

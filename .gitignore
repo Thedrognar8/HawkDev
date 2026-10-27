@@ -1,0 +1,9 @@
+node_modules/
+data/
+token.txt
+.env
+.env.*
+*.log
+*.bak
+*.backup
+hawk-test-*/
