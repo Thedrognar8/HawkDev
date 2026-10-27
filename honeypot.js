@@ -15,22 +15,31 @@ export function installHoneypot({state,save,command,bot,cfg,isStaff,record,alert
  }
  command('honeypot','setup|create|set|on|off|status|time|action|test',async m=>{
   const sub=String(m.argv[0]||'status').toLowerCase();
+  if(sub==='setup'&&m.argv[1]==='channel'){
+   const id=String(m.argv[2]||'').replace(/^<#([\w-]+)>$/,'$1');
+   if(!/^[\w-]{2,100}$/.test(id)||m.argv.length!==3)throw Error('Use /honeypot setup channel CHANNEL_ID (or a channel mention). Choose a dedicated decoy channel.');
+   if(settings.channelId&&settings.channelId!==id)throw Error('A different honeypot is already configured. Use /honeypot set confirm in the replacement channel.');
+   await configure(id);await record('honeypot-set',m.author_id,id,'Existing dedicated channel; warning posted before enabling');await m.reply('Honeypot armed in channel '+id+'. Action: '+settings.action+'. No new channel was created.');return;
+  }
   if(sub==='setup'&&settings.channelId){await channel();await m.reply('Honeypot already configured. Use /honeypot status, /honeypot on or /honeypot off.');return;}
   if(sub==='create'||sub==='setup'){
    if(settings.channelId)throw Error('A channel is already configured. Use set confirm to replace it or on/off.');
    const name=m.argv.slice(1).join('-').toLowerCase().replace(/[^a-z0-9-]/g,'').slice(0,40)||'do-not-post';
-   const c=await bot.createChannel(cfg.serverId,name,{kind:'text'});await configure(String(c.id));await record('honeypot-create',m.author_id,c.id,'Warning posted; enabled with '+settings.action);await m.reply('Honeypot created and armed. Action: '+settings.action+'.');return;
+   let c;try{c=await bot.createChannel(cfg.serverId,name,{kind:'text'});}catch(e){
+    if(/manage.channels|permission|forbidden|\b403\b/i.test(String(e.message)))throw Error('Yapin denied channel creation. Give Vigil Manage Channels, then run /honeypot setup again. Alternatively create a dedicated decoy channel yourself and run /honeypot setup channel CHANNEL_ID. Nothing was armed.');
+    throw e;
+   }await configure(String(c.id));await record('honeypot-create',m.author_id,c.id,'Warning posted; enabled with '+settings.action);await m.reply('Honeypot created and armed. Action: '+settings.action+'.');return;
   }
   if(sub==='set'){
-   if(m.argv[1]!=='confirm')throw Error('Run !honeypot set confirm INSIDE a dedicated decoy channel. Every non-staff message there will trigger enforcement.');
+   if(m.argv[1]!=='confirm')throw Error('Run /honeypot set confirm INSIDE a dedicated decoy channel. Every non-staff message there will trigger enforcement.');
    await configure(String(m.channel_id));await record('honeypot-set',m.author_id,m.channel_id,'Warning posted; enabled');await m.reply('This channel is now the armed honeypot.');return;
   }
   if(sub==='on'){await channel();if(excluded(settings.channelId))throw Error('Channel is now used by logs/tickets; choose another.');await bot.send(settings.channelId,WARNING);await commit({enabled:true});await record('honeypot-on',m.author_id,settings.channelId);await m.reply('Honeypot enabled.');return;}
   if(sub==='off'){await commit({enabled:false});await record('honeypot-off',m.author_id,settings.channelId);await m.reply('Honeypot disabled. Channel and history kept.');return;}
   if(sub==='time'){const n=Number(m.argv[1]);if(!Number.isInteger(n)||n<1||n>1440)throw Error('Timeout length: 1-1440 minutes.');await commit({minutes:n});await record('honeypot-time',m.author_id,settings.channelId,String(n));await m.reply('Timeout length saved.');return;}
-  if(sub==='action'){const action=m.argv[1];if(!['log','timeout','kick','ban'].includes(action))throw Error('Actions: log, timeout, kick, ban.');if(['kick','ban'].includes(action)&&m.argv[2]!=='confirm')throw Error('Use !honeypot action '+action+' confirm. Non-staff posting there will be '+(action==='ban'?'banned':'kicked')+'.');await commit({action});await record('honeypot-action',m.author_id,settings.channelId,action);await m.reply('Honeypot action: '+action+'.');return;}
+  if(sub==='action'){const action=m.argv[1];if(!['log','timeout','kick','ban'].includes(action))throw Error('Actions: log, timeout, kick, ban.');if(['kick','ban'].includes(action)&&m.argv[2]!=='confirm')throw Error('Use /honeypot action '+action+' confirm. Non-staff posting there will be '+(action==='ban'?'banned':'kicked')+'.');await commit({action});await record('honeypot-action',m.author_id,settings.channelId,action);await m.reply('Honeypot action: '+action+'.');return;}
   if(sub==='test'){await channel();await record('honeypot-test',m.author_id,settings.channelId,'Dry run only; no member moderated.');await m.reply('Dry-run log created. Channel is accessible. No member was punished; moderation permissions are not proven by this test.');return;}
-  if(sub!=='status')throw Error('Use create, set, on, off, status, time, action or test.');
+  if(sub!=='status')throw Error('Use setup, create, set, on, off, status, time, action or test.');
   await m.reply(`Honeypot: ${settings.enabled?'ON':'OFF'}\nChannel: ${settings.channelId||'Not configured'}\nAction: ${settings.action}\nTimeout: ${settings.minutes} minutes\nTriggers: ${settings.hits}\nStaff and bots are exempt. No trap exists until you configure it.`);
  });
  return {settings,async handle(message){

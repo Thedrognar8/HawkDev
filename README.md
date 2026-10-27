@@ -89,3 +89,5 @@ Obsolete starters, Python samples/SDK, one-off probes and source backups were mo
 - /avatar removed. Commands addressed to other bots are ignored. Exact slurs, leetspeak and separated variants are filtered; innocent short fragments such as ni are not blocked by default.
 
 Vigil v2.3: /help automatically sends the complete command guide with descriptions and the running version. Long guides continue in bounded embeds without manual page commands.
+
+If /honeypot setup reports missing Manage Channels, grant that permission to Vigil or create a dedicated decoy channel manually and use /honeypot setup channel CHANNEL_ID. Existing-channel setup still verifies the server and posts the warning before arming. It never silently converts your current chat into a trap. Timeout enforcement still needs moderation permission.
