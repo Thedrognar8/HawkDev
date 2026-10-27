@@ -359,3 +359,6 @@ test('actual SDK first startup publishes the menu without server discovery',asyn
  bot.on('ready',()=>bot.stop());await bot.start();const sent=requests.find(r=>r.method==='PUT'&&r.path==='/commands').body.commands;
  assert.equal(sent.length,100);for(const name of ['help','rolebutton','honeypot'])assert.ok(sent.some(c=>c.name===name));
 });
+
+import {honeypotControls,HONEYPOT_ACTIONS} from './honeypot.js';
+test('honeypot panel exposes valid one-click controls with explicit ban label',()=>{const buttons=honeypotControls().flatMap(r=>r.components);assert.equal(buttons.length,7);for(const b of buttons)assert.ok(HONEYPOT_ACTIONS[b.custom_id.slice('vigil-hp:'.length)]);assert.ok(buttons.find(b=>b.label==='Use BAN punishment'));});

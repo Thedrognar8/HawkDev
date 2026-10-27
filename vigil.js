@@ -9,7 +9,7 @@ import { LogService } from './logging.js';
 import { installTickets } from './tickets.js';
 import {installEmbeds,typedCommand,registerLimited} from './presentation.js';
 import {banWithNotice} from './moderation.js';
-import {installHoneypot} from './honeypot.js';
+import {installHoneypot,HONEYPOT_ACTIONS} from './honeypot.js';
 import {installPolicy} from './policy.js';
 import {installModerationSuite} from './moderation-suite.js';
 import {withRequest,firstInRequest,installReadMemo,PermissionGate,mapLimit} from './performance.js';
@@ -202,6 +202,15 @@ for(const event of ['message','member_join','member_leave','voice_join','voice_l
  catch(e){console.error('Event routing failed:',e.message);}
 }));
 bot.onButton(/^vigil-role:/,i=>withRequest(async()=>{try{const channel=await bot.channel(i.channel_id);if(!channel?.server_id)throw Error('Use this inside a server.');const protection=await registry.get(channel.server_id);await protection.roleButtons.click(i);}catch(e){await i.ephemeral('Vigil: '+String(e.message).replace(/@/g,'@\u200b').slice(0,600)).catch(()=>{});}}));
+bot.onButton(/^vigil-hp:/,i=>withRequest(async()=>{
+ try{
+  const argv=HONEYPOT_ACTIONS[String(i.custom_id).slice('vigil-hp:'.length)];if(!argv)throw Error('Unknown honeypot action.');
+  const channel=await bot.channel(i.channel_id);if(!channel?.server_id)throw Error('Use this inside a server.');
+  const protection=await registry.get(channel.server_id);
+  // Reuse the real command wrapper: current admin checks, rate limits and audit apply to every click.
+  await protection.handlers.get('honeypot')({id:i.message_id||'button',server_id:channel.server_id,channel_id:i.channel_id,author_id:i.user_id,author_bot:false,argv:[...argv],content:'',reply:(text,opts)=>i.ephemeral(text,opts)});
+ }catch(e){await i.ephemeral('Vigil: '+String(e.message).replace(/@/g,'@\u200b').slice(0,600)).catch(()=>{});}
+}));
 let discovering=false;
 async function discover(){
  if(discovering)return;discovering=true;

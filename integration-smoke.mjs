@@ -6,7 +6,7 @@ const root=new URL('./',import.meta.url),cache=new Map();
 const context=vm.createContext({console,URL,Date,Math,Map,Set,Promise,JSON,Number,String,Boolean,Object,Array,RegExp,Error,structuredClone,setTimeout:()=>({unref(){}}),setInterval:()=>0,clearInterval:()=>{},process:{env:{YAPPER_BOT_TOKEN:'yb_offline-test'},on:()=>{},uptime:()=>1}});
 class FakeBot{
  constructor(){this.commands=new Map();this.handlers={};this.me={id:'bot'};this.sent=[];this.mutations=[];context.__bot=this;}
- onButton(){return this;}
+ onButton(match,fn){this.buttonHandlers||=[];this.buttonHandlers.push({match,fn});return this;}
  on(n,f){(this.handlers[n]||=[]).push(f);return this;}
  command(n,d,f){if(!this.commands.has(n)&&this.commands.size>=100)throw Error('SDK limit exceeded');this.commands.set(n,{description:d,fn:f});return this;}
  async start(){assert.equal(this.commands.size,100,'first connection would publish an empty slash menu');for(const name of ['help','rolebutton','honeypot'])assert.ok(this.commands.has(name));this.ready=(async()=>{for(const fn of this.handlers.ready||[])await fn();})();return this.ready;}
@@ -44,6 +44,8 @@ assert.ok(replies.some(r=>r.startsWith('Wallet:')),'non-admin balance command fa
 for(const name of ['massban','tempban','role','honeypot','automod','deletechannel']){await protection.handlers.get(name)(msg('!'+name+' user confirm',['user','confirm']));assert.ok(replies.at(-1).includes('Requires a role with Administrator'),'unauthorized access to '+name);}assert.equal(bot.mutations.length,0,'non-admin reached ban API');
 const publicTyped=[...internals.prefixOnly].find(n=>['milestone','botinfo','networth','rolelist'].includes(n));
 if(publicTyped){const event=msg('!'+publicTyped,[],'typed-user');for(const fn of bot.handlers.message||[])await fn(event);assert.ok(event.command===publicTyped);assert.ok(!replies.at(-1).startsWith('Vigil:'),'public typed command was rejected');}
+const hpButton=bot.buttonHandlers.find(b=>b.match.test('vigil-hp:ban'));
+let denied='';await hpButton.fn({custom_id:'vigil-hp:ban',channel_id:'general',user_id:'ordinary-button-user',ephemeral:async text=>{denied=text;}});assert.ok(denied.includes('Requires a role with Administrator'),'honeypot buttons bypassed admin checks');
 assert.ok(bot.sent.length>0&&bot.sent.every(x=>x.content===''&&x.options?.embeds?.length),'a bot reply was not an embed');
 console.log(JSON.stringify({offlineBootstrap:'passed',totalCommands:protection.handlers.size,menuCommands:bot.commands.size,typedCommands:internals.prefixOnly.size,nonAdminEconomy:'passed',unauthorizedBan:'blocked',embedReplies:'passed'}));
 

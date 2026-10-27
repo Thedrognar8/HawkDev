@@ -14,7 +14,7 @@ export function installHoneypot({state,save,command,bot,cfg,isStaff,record,alert
   await commit({channelId:id,enabled:true});
  }
  command('honeypot','setup|create|set|on|off|status|time|action|test',async m=>{
-  if(!m.argv.length){await m.reply('HONEYPOT SETUP\n/honeypot setup — create a dedicated trap channel\n/honeypot setup channel CHANNEL_ID — use an existing decoy channel\n/honeypot action ban confirm — ban non-staff who post there\n/honeypot status — view settings\n/honeypot off — disable enforcement\nStaff and bots are exempt. Vigil needs the matching server permissions.');return;}
+  if(!m.argv.length){await m.reply('HONEYPOT CONTROL PANEL\nChoose an action below. Ban mode affects non-staff posting in the trap; it does not ban anyone when you select the setting.\nCustom timeout: /honeypot time MINUTES\nExisting channel: /honeypot setup channel CHANNEL_ID\nStaff and bots are exempt.',{components:honeypotControls()});return;}
   const sub=String(m.argv[0]).toLowerCase();
   if(sub==='setup'&&m.argv[1]==='channel'){
    const id=String(m.argv[2]||'').replace(/^<#([\w-]+)>$/,'$1');
@@ -68,3 +68,9 @@ export function installHoneypot({state,save,command,bot,cfg,isStaff,record,alert
   finally{inflight.delete(user);}
  }};
 }
+
+export const HONEYPOT_ACTIONS={setup:['setup'],status:['status'],on:['on'],off:['off'],test:['test'],timeout:['action','timeout'],ban:['action','ban','confirm']};
+export function honeypotControls(){return [
+ {type:'row',components:[['Setup channel','setup','primary'],['Status','status','secondary'],['Enable','on','success'],['Disable','off','secondary'],['Test access','test','secondary']].map(([label,id,style])=>({type:'button',label,style,custom_id:'vigil-hp:'+id}))},
+ {type:'row',components:[['Use timeout','timeout','primary'],['Use BAN punishment','ban','danger']].map(([label,id,style])=>({type:'button',label,style,custom_id:'vigil-hp:'+id}))}
+];}
