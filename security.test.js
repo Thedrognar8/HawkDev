@@ -105,3 +105,38 @@ test('log flushing is serialized and follows recovered channel IDs',async()=>{
 test('logs can pause without discarding existing queue',async()=>{
  const h=logHarness();await h.logger.setChannel('logs');await h.logger.enqueue('one');h.state.logs.enabled=false;await h.logger.enqueue('two');await h.logger.flush();assert.equal(h.state.logs.pending.length,1);assert.equal(h.sent.length,0);assert.equal(cleanLog('x'.repeat(5000)).length,1750);
 });
+import {installTickets} from './tickets.js';
+function ticketHarness(){
+ const state={},handlers=new Map(),calls=[],channels=new Map();let n=0,privateFailure=false,dmFailure=false;
+ const bot={roles:async()=>[{id:'support',name:'Support'},{id:'everyone',name:'@everyone'}],categories:async()=>[{id:'category'}],createCategory:async()=>({id:'category'}),member:async(s,id)=>({roles:id==='helper'?['support']:[]}),dm:async()=>{if(dmFailure)throw Error('DMs blocked');return 'dm';},createChannel:async()=>{const c={id:'room'+(++n),server_id:'server',kind:'text',private:false};channels.set(c.id,c);return c;},editChannel:async(id,changes)=>{calls.push(['edit',id,changes]);if(privateFailure&&changes.private)throw Error('no private permission');Object.assign(channels.get(id),changes);return channels.get(id);},channel:async id=>channels.get(id),server:async()=>({name:'Test Server'}),send:async(id,text)=>{calls.push(['send',id,text]);return {};}};
+ const system=installTickets({state,save:async()=>{},command:(n,d,f)=>handlers.set(n,f),bot,cfg:{serverId:'server'},hasAdmin:async id=>id==='admin',record:async()=>{}});
+ const message=(author='owner',argv=[],channel='public')=>({author_id:author,argv,channel_id:channel,reply:async()=>{},say:async()=>{}});
+ return {state,handlers,calls,channels,system,message,failPrivate:()=>{privateFailure=true;},failDM:()=>{dmFailure=true;}};
+}
+test('tickets require setup and exclude everyone role',async()=>{
+ const h=ticketHarness();await assert.rejects(h.handlers.get('ticket')(h.message()));await assert.rejects(h.handlers.get('ticketsetup')(h.message('admin',['everyone'])));
+ await h.handlers.get('ticketsetup')(h.message('admin',['support']));assert.equal(h.state.tickets.settings.enabled,true);
+});
+test('ticket content is never sent until privacy is verified',async()=>{
+ const h=ticketHarness();await h.handlers.get('ticketsetup')(h.message('admin',['support']));h.failPrivate();await assert.rejects(h.handlers.get('ticket')(h.message()));assert.equal(h.calls.filter(x=>x[0]==='send').length,0);assert.equal(h.system.openFor('owner').length,0);
+});
+test('blocked DMs do not create staff rooms',async()=>{
+ const h=ticketHarness();await h.handlers.get('ticketsetup')(h.message('admin',['support']));h.failDM();await assert.rejects(h.handlers.get('ticket')(h.message()));assert.equal(h.channels.size,0);
+});
+test('concurrent ticket opens obey per-member limit',async()=>{
+ const h=ticketHarness();await h.handlers.get('ticketsetup')(h.message('admin',['support']));const r=await Promise.allSettled([h.handlers.get('ticket')(h.message()),h.handlers.get('ticket')(h.message())]);assert.equal(r.filter(x=>x.status==='fulfilled').length,1);assert.equal(h.system.openFor('owner').length,1);
+});
+test('DM relay verifies ownership and remains private after permission changes',async()=>{
+ const h=ticketHarness();await h.handlers.get('ticketsetup')(h.message('admin',['support']));await h.handlers.get('ticket')(h.message());const [t]=h.system.openFor('owner');
+ await assert.rejects(h.system.receive(t,h.message('intruder',[],'dm'),'secret'));
+ await h.system.receive(t,h.message('owner',[],'dm'),'hello @everyone');assert.equal(t.messages.length,1);assert.ok(!t.messages[0].text.includes('@everyone'));
+ t.lastMessage=0;h.channels.get(t.channelId).private=false;await assert.rejects(h.system.receive(t,h.message('owner',[],'dm'),'secret'));assert.equal(t.messages.length,1);
+});
+test('support role recognition, claim and safe archive',async()=>{
+ const h=ticketHarness();await h.handlers.get('ticketsetup')(h.message('admin',['support']));await h.handlers.get('ticket')(h.message());const [t]=h.system.openFor('owner');
+ assert.equal(await h.system.isStaff('helper'),true);assert.equal(Boolean(await h.system.isStaff('stranger')),false);
+ await h.handlers.get('ticketclaim')(h.message('helper',[],t.channelId));assert.equal(t.claimedBy,'helper');
+ await assert.rejects(h.handlers.get('ticketclose')(h.message('stranger',[],t.channelId)));
+ await h.handlers.get('ticketreply')(h.message('helper',['hello'],t.channelId));assert.equal(t.messages.length,1);
+ await h.handlers.get('ticketclose')(h.message());assert.equal(t.status,'closed');assert.equal(h.channels.get(t.channelId).private,true);assert.equal(h.channels.get(t.channelId).readOnly,true);assert.equal(h.channels.size,1);
+});

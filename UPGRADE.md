@@ -70,3 +70,41 @@ Outbox is stored in each server's existing JSON state, is bounded to 500 entries
 bot.js is the main entry point used by START HAWK.cmd and npm start. bot.js.backup is a spare copy. Neither can be made undeletable by this bot: someone with filesystem deletion rights can still remove files. The launcher reports a missing bot.js. Restrict file access using your computer's account permissions if needed. The bot cannot prevent a server owner/admin from removing the bot when Yapin permits it.
 
 65 built-in commands. 26 tests passed, including log retry, channel validation, mention suppression, pause behavior and concurrent delivery serialization. Logging was verified offline; no test messages were sent to a real server during this update.
+
+## Configurable support tickets
+
+Restart the bot after updating. Tickets are off until an Administrator configures them:
+
+1. Create a Support role in Yapin and assign it to your support staff.
+2. Run !ticketsetup SUPPORT_ROLE_ID (a role mention also works). Hawk creates a Hawk Support category and enables tickets.
+3. In the public help channel, run !ticketpanel to post instructions.
+4. Members type !ticket, then send details to Hawk in DMs. Hawk relays text to a private staff channel. Staff use !ticketreply TEXT in that room to reply privately.
+
+Yapin's bundled SDK exposes role-based channel access, not per-member channel access. These are DM-bridged tickets: members do NOT join the staff channel. Hawk opens an initially empty generic ticket channel, applies the support role's private ACL, verifies it is private, and only then posts any ticket details. If privacy setup fails, no conversation is relayed. A failed setup may leave an empty channel marked failed in local state. The bot must retain access to private ticket channels; an Administrator bot role may be needed under platform permission rules. Members must allow DMs from Hawk.
+
+Administrator configuration:
+- !ticketsetup SUPPORT_ROLE_ID -- create category if needed, choose staff role and enable
+- !ticketrole SUPPORT_ROLE_ID -- role for FUTURE ticket rooms
+- !ticketcategory CATEGORY_ID -- category for FUTURE ticket rooms
+- !tickettoggle on|off -- enable/disable new tickets; existing tickets continue
+- !ticketlimit 1|2|3 -- open tickets per member per server
+- !ticketsettings -- show configuration
+- !ticketpanel -- post instructions in current channel
+
+Member commands:
+- !ticket -- open a ticket
+- !tickets -- list YOUR open tickets
+- !ticketclose [T-xxxxxxxx] -- close your own ticket from the original server
+- In DMs, ordinary text is relayed when exactly one ticket is open. If several are open, use !ticketmsg T-xxxxxxxx YOUR MESSAGE. This DM command is text-based, not registered in the slash menu.
+
+Support-role or Administrator commands, inside a private ticket staff room:
+- !ticketclaim -- claim an unassigned ticket
+- !ticketunclaim -- clear your assignment (Administrators may clear others)
+- !ticketreply TEXT -- send a reply to the member's DM
+- !ticketclose -- close and archive the current ticket
+- !ticketrename NAME -- rename staff room
+- !tickettranscript [PAGE] -- read saved transcript pages
+
+Replies, claims and settings are stored per server. Current support-role membership is checked for staff commands. When changing the configured role, existing room permissions are NOT automatically rewritten: review those channels separately. Transcripts store at most 500 text messages per ticket; oldest entries expire beyond that limit. Attachments are not relayed automatically. There is a three-second per-ticket incoming-message cooldown. Transcripts and channels remain after closing; closed rooms are private/read-only. Treat local data backups as private support records.
+
+Ticket logs record IDs/actions without copying private conversation text into the general staff log. Live ticket delivery has not been tested with real members. 32 offline tests passed, including failed privacy setup, blocked DMs, duplicate opens, sender ownership, privacy changes, staff roles, replies and archival. There are now 80 registered built-in commands, plus the DM !ticketmsg router and capacity for 500 custom text-response commands.

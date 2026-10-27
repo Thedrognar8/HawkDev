@@ -4,6 +4,7 @@ import { Counter, settings, safeTarget, memberHasAdministrator } from './securit
 import { ServerRegistry } from './server-registry.js';
 import { installFeatures } from './features.js';
 import { LogService } from './logging.js';
+import { installTickets } from './tickets.js';
 import { ownerFromServer, atomicSave } from './runtime.js';
 const root = new URL('./', import.meta.url);
 const config = JSON.parse(await readFile(new URL('hawk.config.json', root), 'utf8'));
@@ -51,11 +52,12 @@ async function hasAdmin(userId){
  const [member,roles]=await Promise.all([bot.member(cfg.serverId,userId),bot.roles(cfg.serverId)]);
  return memberHasAdministrator(member,roles);
 }
+let ticketSystem;
 const commands=new Map(), handlers=new Map(), events=new Map();
 function command(name,desc,fn,onlyOwner=false) { commands.set(name,desc); register(name,desc); handlers.set(name,async m=>{try{
  if(String(m.server_id)!==String(cfg.serverId)) throw Error('Wrong server.');
  if(counter.hit('cmd:'+m.author_id,10000)>8) throw Error('Wait a few seconds.');
- if(onlyOwner!=='public'&&!await hasAdmin(m.author_id))throw Error('Requires a role with Administrator (all permissions).');
+ if(onlyOwner!=='public'){const allowed=onlyOwner==='support'?await ticketSystem?.isStaff(m.author_id):await hasAdmin(m.author_id);if(!allowed)throw Error(onlyOwner==='support'?'Requires the configured support role or Administrator.':'Requires a role with Administrator (all permissions).');}
  const before=state.cases.length;
  await fn(m);
  const changes=['filter','filtertime','filteradd','filterallow','filterignore','filterunignore','customadd','customdelete','backup','restore','unlock','raidmode','setlogs','logsoff','logson'];
@@ -132,6 +134,7 @@ events.set('message',async m=>{if(String(m.server_id)!==String(cfg.serverId)||is
  try{if(await hasAdmin(m.author_id))return;await bot.delete(m.channel_id,m.id);await bot.timeout(cfg.serverId,m.author_id,5,'Flood or mass mentions');await record('automod-timeout','Hawk',m.author_id);}catch(e){await alert('Automod failed: '+e.message);}
 });
 
+ ticketSystem=installTickets({state,save,command,bot,cfg,hasAdmin,record});
  const features=installFeatures({state,save,command,commands,handlers,hasAdmin,bot,cfg,record});
  const previousMessage=events.get('message');
  events.set('message',async m=>{
@@ -147,10 +150,25 @@ events.set('message',async m=>{if(String(m.server_id)!==String(cfg.serverId)||is
  const previousJoin=events.get('member_join');
  events.set('member_join',async ev=>{await logger.enqueue('MEMBER JOIN | User: '+ev.user_id);await previousJoin(ev);});
  events.set('member_leave',async ev=>{await logger.enqueue('MEMBER LEAVE | User: '+ev.user_id+' | Cause/actor not supplied by SDK.');});
- return {handlers,events,poll,flush:()=>queue};
+ return {handlers,events,poll,tickets:ticketSystem,flush:async()=>{await ticketSystem.flush();await queue;}};
+}
+async function receiveTicketDM(message){
+ if(message.author_bot||message.command)return;
+ const available=[];
+ for(const pending of registry.entries.values()){
+  try{const protection=await pending;for(const ticket of protection.tickets.openFor(message.author_id))if(ticket.dmChannelId===String(message.channel_id))available.push({ticket,system:protection.tickets});}catch{}
+ }
+ if(!available.length)return;
+ const match=/^!ticketmsg\s+(T-[a-f0-9]{8})\s+([\s\S]+)$/i.exec(String(message.content||''));
+ let chosen,text;
+ if(match){chosen=available.find(x=>x.ticket.id.toLowerCase()===match[1].toLowerCase());text=match[2];}
+ else if(available.length===1&&!String(message.content||'').startsWith('!')){chosen=available[0];text=message.content;}
+ if(!chosen){await message.reply('Choose a ticket: !ticketmsg ID YOUR MESSAGE. Your open IDs: '+available.map(x=>x.ticket.id).join(', '));return;}
+ try{await chosen.system.receive(chosen.ticket,message,text);await message.reply('Delivered to support ['+chosen.ticket.id+'].');}
+ catch(e){await message.reply('Ticket delivery failed: '+String(e.message).replace(/@/g,'@\u200b').slice(0,500));}
 }
 for(const event of ['message','member_join','member_leave'])bot.on(event,async ev=>{
- if(!ev.server_id)return;
+ if(!ev.server_id){if(event==='message')await receiveTicketDM(ev);return;}
  try{const protection=await registry.get(ev.server_id);await protection.events.get(event)?.(ev);}
  catch(e){console.error('Event routing failed:',e.message);}
 });

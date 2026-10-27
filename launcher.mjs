@@ -53,7 +53,7 @@ const validToken = value => /^yb_\S+$/.test(value||'');
 async function diagnostics() {
  const checks=[];
  checks.push({name:'Node.js '+process.versions.node,ok:Number(process.versions.node.split('.')[0])>=18});
- const required=['bot.js','hawk.js','yapper.js','features.js','features-core.js','security.js','runtime.js','server-registry.js','logging.js'];
+ const required=['bot.js','hawk.js','yapper.js','features.js','features-core.js','security.js','runtime.js','server-registry.js','logging.js','tickets.js'];
  for(const name of required){try{await access(new URL(name,root));checks.push({name,ok:true});}catch{checks.push({name,ok:false});}}
  try {
   const cfg=JSON.parse((await readFile(new URL('hawk.config.json',root),'utf8')).replace(/^\uFEFF/,''));
@@ -95,6 +95,7 @@ function highlights() {
  console.log('  ◈ Recovery       Saved public-channel layouts');
  console.log('  ◈ Word filter    Custom words, exceptions and timeouts');
  console.log('  ◈ Economy        Rewards, banking, payments and inventories');
+ console.log('  ◈ Tickets        Private support rooms and DM replies');
  console.log('  ◈ Logs           Persistent queue, cases and staff channel');
  console.log('  ◈ Custom         Up to 500 custom text-response commands');
  console.log(paint('90','\n  These are installed features, not live connection indicators.\n'));

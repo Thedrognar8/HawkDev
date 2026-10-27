@@ -14,12 +14,13 @@ No server ID or user ID needs to be entered. Server owners and current members w
 
 ## Included
 
-- **65 built-in commands**, plus capacity for **500 custom text-response commands** per server.
+- **80 built-in commands**, plus capacity for **500 custom text-response commands** per server.
 - Join-raid, flood, and mass-mention containment.
 - Configurable swear filtering with timeout length, word exceptions, and channel exceptions.
 - Recovery snapshots and public-channel recreation.
 - Role quarantine and restoration for a **verified** attacker.
 - Fictional economy: rewards, work, payments, banking, shop, and inventory.
+- Configurable support tickets: private staff channels with a DM bridge, claims, replies, and archived transcripts.
 - Persistent moderation cases and queued in-server log delivery.
 
 Read [UPGRADE.md](UPGRADE.md) for command usage and operating details.
@@ -36,7 +37,7 @@ Keep one running process per data directory and back up that directory separatel
 
 ## Tests and private data
 
-Run `npm test`. The project has **26 offline tests** covering permissions, isolation, filtering, economy, persistence, custom commands, and log delivery. Test live platform behavior in a private disposable server before relying on protection.
+Run `npm test`. The project has **32 offline tests** covering permissions, isolation, filtering, economy, persistence, custom commands, and log delivery. Test live platform behavior in a private disposable server before relying on protection.
 
 Tokens, environment files, `data/`, logs, and local backups are excluded by `.gitignore`. No token or private server data is included in this repository.
 
