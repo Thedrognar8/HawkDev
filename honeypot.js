@@ -14,7 +14,8 @@ export function installHoneypot({state,save,command,bot,cfg,isStaff,record,alert
   await commit({channelId:id,enabled:true});
  }
  command('honeypot','setup|create|set|on|off|status|time|action|test',async m=>{
-  const sub=String(m.argv[0]||'status').toLowerCase();
+  if(!m.argv.length){await m.reply('HONEYPOT SETUP\n/honeypot setup — create a dedicated trap channel\n/honeypot setup channel CHANNEL_ID — use an existing decoy channel\n/honeypot action ban confirm — ban non-staff who post there\n/honeypot status — view settings\n/honeypot off — disable enforcement\nStaff and bots are exempt. Vigil needs the matching server permissions.');return;}
+  const sub=String(m.argv[0]).toLowerCase();
   if(sub==='setup'&&m.argv[1]==='channel'){
    const id=String(m.argv[2]||'').replace(/^<#([\w-]+)>$/,'$1');
    if(!/^[\w-]{2,100}$/.test(id)||m.argv.length!==3)throw Error('Use /honeypot setup channel CHANNEL_ID (or a channel mention). Choose a dedicated decoy channel.');

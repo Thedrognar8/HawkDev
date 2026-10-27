@@ -37,7 +37,7 @@ async function linker(specifier,parent){
 }
 const main=await moduleFor(new URL('vigil.js',root).href);await main.link(linker);await main.evaluate();await context.__bot.ready;
 const bot=context.__bot,internals=context.__internals,protection=await internals.registry.get('offline-server');
-assert.equal(bot.commands.size,100);assert.ok(internals.prefixOnly.size>0);
+assert.equal(bot.commands.size,100);for(const name of ['rolebutton','honeypot','ticketsetup'])assert.ok(bot.commands.has(name),name+' missing from slash menu');assert.ok(internals.prefixOnly.size>0);
 const replies=[];const msg=(content,argv=[],author='ordinary')=>({id:'test-message',server_id:'offline-server',channel_id:'general',author_id:author,content,argv,reply:(text,opts)=>{replies.push(text);return bot.send('general',text,opts);}});
 await protection.handlers.get('bal')(msg('!bal'));
 assert.ok(replies.some(r=>r.startsWith('Wallet:')),'non-admin balance command failed');
