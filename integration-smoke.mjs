@@ -9,7 +9,7 @@ class FakeBot{
  onButton(){return this;}
  on(n,f){(this.handlers[n]||=[]).push(f);return this;}
  command(n,d,f){if(!this.commands.has(n)&&this.commands.size>=100)throw Error('SDK limit exceeded');this.commands.set(n,{description:d,fn:f});return this;}
- async start(){this.ready=(async()=>{for(const fn of this.handlers.ready||[])await fn();})();return this.ready;}
+ async start(){assert.equal(this.commands.size,100,'first connection would publish an empty slash menu');for(const name of ['help','rolebutton','honeypot'])assert.ok(this.commands.has(name));this.ready=(async()=>{for(const fn of this.handlers.ready||[])await fn();})();return this.ready;}
  async servers(){return [{id:'offline-server'}];}
  async server(){return {id:'offline-server',name:'Offline Test',owner_id:'owner'};}
  async roles(){return [{id:'member-role',name:'Member',perms:{send_messages:true}}];}

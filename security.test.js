@@ -348,3 +348,14 @@ test('role buttons reject elevated roles, forged messages and disabled panels',a
 import {resolveRoleSelection} from './role-buttons.js';
 test('role selection supports multiword display mentions and IDs',()=>{const roles=[{id:'123',name:'Update notification'}];for(const argv of [['@Update','notification','Click','here'],['<@&123>','Click','here'],['123','Click','here']]){const r=resolveRoleSelection(argv,roles);assert.equal(r.role.id,'123');assert.deepEqual(r.rest,['Click','here']);}});
 test('priority commands enter a full slash menu and evicted commands stay typed',()=>{const bot={commands:new Map(),command(n,d,f){this.commands.set(n,f);}},prefix=new Set();for(let i=0;i<100;i++)registerLimited(bot,'filler'+i,'',()=>{},prefix);registerLimited(bot,'honeypot','',()=>{},prefix);assert.ok(bot.commands.has('honeypot'));assert.equal(bot.commands.size,100);assert.ok(prefix.has('filler99'));});
+
+import {Bot as ActualSDKBot} from './yapper.js';
+import {COMMAND_CATALOG} from './command-catalog.js';
+test('actual SDK first startup publishes the menu without server discovery',async()=>{
+ const bot=new ActualSDKBot('yb_offline-test',{gateway:false,log:false}),prefix=new Set(),requests=[];
+ const priority=new Set(['help','rolebutton','honeypot','ticketsetup','ticket','automod','filter','autowarn','setlogs','ban','kick','warn']);
+ for(const entry of [...COMMAND_CATALOG].sort((a,b)=>Number(priority.has(b.name))-Number(priority.has(a.name))))registerLimited(bot,entry.name,entry.description,async()=>{},prefix);
+ bot.api=async(method,path,body)=>{requests.push({method,path,body});if(path==='/me')return {id:'bot',username:'offline'};if(path==='/commands')return {};if(path.startsWith('/events'))return {events:[],last:0};throw Error('Unexpected API '+path);};
+ bot.on('ready',()=>bot.stop());await bot.start();const sent=requests.find(r=>r.method==='PUT'&&r.path==='/commands').body.commands;
+ assert.equal(sent.length,100);for(const name of ['help','rolebutton','honeypot'])assert.ok(sent.some(c=>c.name===name));
+});

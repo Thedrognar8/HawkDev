@@ -1,3 +1,4 @@
+import {COMMAND_CATALOG} from './command-catalog.js';
 import {installRoleButtons} from './role-buttons.js';
 import { Bot } from './yapper.js';
 import { readFile, writeFile, rename, mkdir, appendFile } from 'node:fs/promises';
@@ -211,4 +212,8 @@ bot.on('ready',async()=>{await discover();console.log('Vigil ready: automatic se
 const timer=setInterval(()=>void discover(),Math.max(5,config.pollSeconds)*1000);
 async function stop(){clearInterval(timer);for(const promise of registry.entries.values())try{await(await promise).flush();}catch{}process.exit(0);}
 process.on('SIGINT',stop);process.on('SIGTERM',stop);
+// Publish a complete menu on the FIRST /commands request. Server discovery can fail independently.
+const menuPriority=new Set(['help','rolebutton','honeypot','ticketsetup','ticket','automod','filter','autowarn','setlogs','ban','kick','warn']);
+for(const entry of [...COMMAND_CATALOG].sort((a,b)=>Number(menuPriority.has(b.name))-Number(menuPriority.has(a.name))))register(entry.name,entry.description);
+console.log('Vigil slash menu prepared: '+bot.commands.size+' commands before connection.');
 bot.start().catch(e=>{console.error('Startup failed',e.message);clearInterval(timer);process.exitCode=1;});
