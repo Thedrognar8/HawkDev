@@ -25,8 +25,8 @@ export function reward(a,key,wait,payout,now=Date.now()){
 }
 export function transfer(a,b,n){n=amount(n);if(a===b)throw Error('Cannot pay yourself.');if(a.wallet<n)throw Error('Not enough coins.');credit(b,'wallet',n);a.wallet-=n;}
 export function move(a,n,toBank){n=amount(n);const from=toBank?'wallet':'bank',to=toBank?'bank':'wallet';if(a[from]<n)throw Error('Not enough coins.');credit(a,to,n);a[from]-=n;}
-export function buy(a,item,qty=1){if(!ITEMS[item])throw Error('Unknown item. Use !shop.');qty=amount(qty);if(qty>100)throw Error('Maximum 100 at once.');const cost=ITEMS[item].price*qty;if(a.wallet<cost)throw Error('Not enough coins.');a.wallet-=cost;a.inventory[item]=(a.inventory[item]||0)+qty;return cost;}
-export function sell(a,item,qty=1){if(!ITEMS[item])throw Error('Unknown item.');qty=amount(qty);if((a.inventory[item]||0)<qty)throw Error('Not enough items.');const payout=Math.floor(ITEMS[item].price*.6)*qty;credit(a,'wallet',payout);a.inventory[item]-=qty;return payout;}
+export function buy(a,item,qty=1){if(!Object.hasOwn(ITEMS,item))throw Error('Unknown item. Use !shop.');qty=amount(qty);if(qty>100)throw Error('Maximum 100 at once.');const cost=ITEMS[item].price*qty;if(a.wallet<cost)throw Error('Not enough coins.');a.wallet-=cost;a.inventory[item]=(a.inventory[item]||0)+qty;return cost;}
+export function sell(a,item,qty=1){if(!Object.hasOwn(ITEMS,item))throw Error('Unknown item.');qty=amount(qty);if((a.inventory[item]||0)<qty)throw Error('Not enough items.');const payout=Math.floor(ITEMS[item].price*.6)*qty;credit(a,'wallet',payout);a.inventory[item]-=qty;return payout;}
 export function customSet(commands,name,response){
  if(!/^[a-z][a-z0-9_-]{0,31}$/.test(name))throw Error('Name must be 1-32 letters/numbers, starting with a letter.');
  if(!response||response.length>1500)throw Error('Response must be 1-1500 characters.');

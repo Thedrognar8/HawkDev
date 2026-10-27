@@ -12,9 +12,13 @@ A Node.js moderation bot for Yapin with anti-raid monitoring, public-channel rec
 
 No server ID or user ID needs to be entered. Server owners and current members with a role whose `perms.administrator` is true can use moderation/configuration commands. Economy and selected informational/fun commands are available to members.
 
+## Embeds and public economy
+
+Bot chat replies use consistent embeds. Members can use `!eco`, `!bal`, `!daily`, `!work`, gathering, crafting, jobs, quests, and business commands without Administrator. Sensitive controls remain restricted. The first 100 commands appear in the platform menu; the other 30 work when typed with `!`. See UPGRADE.md for the full new command list.
+
 ## Included
 
-- **80 built-in commands**, plus capacity for **500 custom text-response commands** per server.
+- **130 built-in commands**, plus capacity for **500 custom text-response commands** per server.
 - Join-raid, flood, and mass-mention containment.
 - Configurable swear filtering with timeout length, word exceptions, and channel exceptions.
 - Recovery snapshots and public-channel recreation.
@@ -37,7 +41,7 @@ Keep one running process per data directory and back up that directory separatel
 
 ## Tests and private data
 
-Run `npm test`. The project has **32 offline tests** covering permissions, isolation, filtering, economy, persistence, custom commands, and log delivery. Test live platform behavior in a private disposable server before relying on protection.
+Run `npm test`. The project has **37 offline tests** covering permissions, isolation, filtering, economy, persistence, custom commands, and log delivery. Test live platform behavior in a private disposable server before relying on protection.
 
 Tokens, environment files, `data/`, logs, and local backups are excluded by `.gitignore`. No token or private server data is included in this repository.
 

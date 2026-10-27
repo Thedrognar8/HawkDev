@@ -1,0 +1,52 @@
+import {amount,reward,ITEMS} from './features-core.js';
+const RESOURCES={fish:20,ore:30,herbs:15,hide:25,wheat:10};
+const RECIPES={rod:{wood:0,ore:4,herbs:3},pickaxe:{ore:8,hide:2},backpack:{hide:5,herbs:5}};
+const JOBS={courier:150,farmer:175,engineer:225};
+const BUSINESSES={kiosk:{price:5000,rate:200},cafe:{price:20000,rate:900},warehouse:{price:100000,rate:5000}};
+export function installMore({pub,command,commands,handlers,tx,me,state,bot,cfg,record}){
+ const extra=a=>{a.resources||={};a.gear||={};a.tasks||={};a.questClaims||={};return a;};
+ function add(a,n){if(!Number.isSafeInteger(n)||n<0||a.wallet+n>1e15)throw Error('Coin balance limit.');a.wallet+=n;a.earned+=n;}
+ function spend(a,n){if(a.wallet<n)throw Error('Not enough coins.');a.wallet-=n;}
+ const list=(obj)=>Object.entries(obj).map(([k,v])=>`${k}: ${v}`).join('\n')||'Nothing yet.';
+ for(const [name,target]of Object.entries({eco:'economy',bal:'balance',dep:'deposit',with:'withdraw',inv:'inventory',lb:'richest'}))pub(name,'Shortcut for !'+target,m=>handlers.get(target)(m));
+ pub('wallet','Wallet coins only',m=>m.reply('Wallet: '+me(m).wallet+' coins'));
+ pub('networth','Wallet plus bank',m=>m.reply('Net worth: '+(me(m).wallet+me(m).bank)+' coins'));
+ pub('rank','Your position on the server wealth board',m=>{const a=me(m);const rank=1+Object.values(state.economy.users).filter(b=>b.wallet+b.bank>a.wallet+a.bank).length;return m.reply('Wealth rank #'+rank);});
+ pub('richbank','Top ten bank savers',m=>m.reply(Object.entries(state.economy.users).sort((a,b)=>b[1].bank-a[1].bank).slice(0,10).map(([id,a],i)=>`${i+1}. ${id}: ${a.bank}`).join('\n')||'No savers yet.'));
+ pub('milestone','Your distance to the next wealth milestone',m=>{const total=me(m).wallet+me(m).bank,next=[1000,10000,100000,1000000,1e9,1e12,1e15].find(n=>n>total);return m.reply(next?`${next-total} coins until ${next}.`:'Maximum milestone reached.');});
+ pub('item','ITEM: catalog details',m=>{const n=Object.hasOwn(ITEMS,m.argv[0])?ITEMS[m.argv[0]].price:0;if(!n)throw Error('Use !shop to choose an item.');return m.reply(`${m.argv[0]} | Buy ${n} | Sell ${Math.floor(n*.6)} coins. Cosmetic inventory item.`);});
+ pub('sellprice','RESOURCE: quote sale price',m=>{const n=RESOURCES[m.argv[0]];if(!n)throw Error('Use fish, ore, herbs, hide or wheat.');return m.reply(m.argv[0]+': '+n+' coins each.');});
+ pub('prices','All resource prices',m=>m.reply(list(RESOURCES)));
+ pub('payhelp','How to transfer coins',m=>m.reply('!pay USER_ID AMOUNT sends wallet coins to another server member. Transfers cannot use bank funds. !withdraw AMOUNT first.'));
+ pub('hourly','Claim 150 coins every hour',async m=>m.reply('Claimed '+await tx(()=>reward(me(m),'hourly',3600000,150))+' coins.'));
+ pub('salary','Job payout every hour',async m=>m.reply('Salary: '+await tx(()=>{const a=extra(me(m));if(!Object.hasOwn(JOBS,a.job))throw Error('Pick a job with !pickjob courier|farmer|engineer.');return reward(a,'salary',3600000,JOBS[a.job]);})+' coins.'));
+ for(const [name,resource,gear]of [['fish','fish','rod'],['mine','ore','pickaxe'],['forage','herbs','backpack'],['hunt','hide','backpack'],['harvest','wheat','backpack']])pub(name,'Gather '+resource+' every minute',async m=>m.reply(await tx(()=>{const a=extra(me(m));reward(a,name,60000,0);const qty=(a.gear[gear]?3:1);a.resources[resource]=(a.resources[resource]||0)+qty;a.tasks.gathered=(a.tasks.gathered||0)+qty;return `Gathered ${qty} ${resource}. Use !resources or !sellresource.`;})));
+ pub('resources','Your crafting resources',m=>m.reply(list(extra(me(m)).resources)));
+ pub('recipes','Crafting recipes',m=>m.reply(Object.entries(RECIPES).map(([n,r])=>n+' → '+Object.entries(r).filter(([,q])=>q>0).map(([k,q])=>q+' '+k).join(', ')).join('\n')));
+ pub('craft','rod|pickaxe|backpack: craft gathering gear',async m=>m.reply(await tx(()=>{const a=extra(me(m)),name=m.argv[0],recipe=RECIPES[name];if(!Object.hasOwn(RECIPES,name))throw Error('Use !recipes.');if(a.gear[name])throw Error('You already own this gear.');for(const [r,q]of Object.entries(recipe))if((a.resources[r]||0)<q)throw Error('Missing '+r);for(const [r,q]of Object.entries(recipe))if(q)a.resources[r]-=q;a.gear[name]=true;return 'Crafted '+name+'. Gathering yield improved.';})));
+ pub('sellresource','RESOURCE QUANTITY: sell gathered materials',async m=>m.reply(await tx(()=>{const a=extra(me(m)),name=m.argv[0],qty=amount(m.argv[1]);if(!Object.hasOwn(RESOURCES,name))throw Error('Unknown resource.');if((a.resources[name]||0)<qty)throw Error('Not enough resources.');add(a,RESOURCES[name]*qty);a.resources[name]-=qty;a.tasks.sold=(a.tasks.sold||0)+qty;return 'Sold for '+RESOURCES[name]*qty+' coins.';})));
+ pub('xp','Your activity XP',m=>m.reply('Activity XP: '+(extra(me(m)).tasks.gathered||0)*10));
+ pub('level','Your gathering level',m=>m.reply('Gathering level '+(1+Math.floor((extra(me(m)).tasks.gathered||0)/10))));
+ pub('achievements','View economy milestones',m=>{const a=extra(me(m));return m.reply(`First coins: ${a.earned>0?'✓':'—'}\nGather 10: ${(a.tasks.gathered||0)>=10?'✓':'—'}\nCrafter: ${Object.keys(a.gear).length?'✓':'—'}\nBusiness owner: ${a.business?'✓':'—'}`);});
+ pub('taskstats','Your gathered/sold totals',m=>m.reply(list(extra(me(m)).tasks)));
+ pub('quests','Available one-time economy quests',m=>m.reply('gatherer: gather 10 resources → 500 coins\ntrader: sell 10 resources → 500 coins\nUse !claimquest NAME.'));
+ pub('claimquest','gatherer|trader: claim a completed quest',async m=>m.reply(await tx(()=>{const a=extra(me(m)),name=m.argv[0];if(!['gatherer','trader'].includes(name))throw Error('Use !quests.');if(a.questClaims[name])throw Error('Already claimed.');if((a.tasks[name==='gatherer'?'gathered':'sold']||0)<10)throw Error('Quest not completed.');add(a,500);a.questClaims[name]=true;return 'Quest complete: 500 coins.';})));
+ pub('pickjob','courier|farmer|engineer',async m=>{await tx(()=>{const a=extra(me(m));if(!Object.hasOwn(JOBS,m.argv[0]))throw Error('Use !jobs.');a.job=m.argv[0];});await m.reply('Job selected. !salary has a shared hourly cooldown.');});
+ pub('jobs','Jobs and hourly salary',m=>m.reply(list(JOBS)));
+ pub('job','Your selected job',m=>m.reply('Your job: '+(extra(me(m)).job||'None. Use !pickjob.')));
+ pub('resign','Leave your selected job',async m=>{await tx(()=>{delete extra(me(m)).job;});await m.reply('Job resigned. Salary cooldown remains.');});
+ pub('business','Your business status',m=>{const b=extra(me(m)).business;return m.reply(b?`${b.name} | Tier ${b.tier} | Collect with !collectbusiness`:'No business. Use !businesses.');});
+ pub('businesses','Business purchase prices / hourly base income',m=>m.reply(Object.entries(BUSINESSES).map(([n,b])=>`${n}: ${b.price} coins | ${b.rate}/hour`).join('\n')));
+ pub('buybusiness','kiosk|cafe|warehouse: own one business',async m=>{await tx(()=>{const a=extra(me(m)),name=m.argv[0];if(!Object.hasOwn(BUSINESSES,name))throw Error('Use !businesses.');if(a.business)throw Error('You already own a business.');spend(a,BUSINESSES[name].price);a.business={name,tier:1,last:Date.now()};});await m.reply('Business purchased. Income accrues for up to 24 hours.');});
+ pub('collectbusiness','Collect whole accrued business hours',async m=>m.reply(await tx(()=>{const a=extra(me(m)),b=a.business;if(!b)throw Error('No business.');const hours=Math.min(24,Math.floor((Date.now()-b.last)/3600000));if(hours<1)throw Error('Wait until one full hour has accrued.');const n=hours*BUSINESSES[b.name].rate*b.tier;add(a,n);b.last=Date.now();return 'Collected '+n+' coins.';})));
+ pub('upgradebusiness','Upgrade your business (maximum tier 5)',async m=>m.reply(await tx(()=>{const a=extra(me(m)),b=a.business;if(!b)throw Error('No business.');if(b.tier>=5)throw Error('Already max tier.');const cost=BUSINESSES[b.name].price*b.tier;spend(a,cost);b.tier++;b.last=Date.now();return `Tier ${b.tier} purchased for ${cost}. Accrual restarted; collect first next time.`;})));
+ pub('donate','AMOUNT: contribute to fictional server fund',async m=>{const n=amount(m.argv[0]);await tx(()=>{const a=extra(me(m));if((state.economy.donations||0)+n>1e15)throw Error('Fund cap reached.');spend(a,n);state.economy.donations=(state.economy.donations||0)+n;a.donated=(a.donated||0)+n;});await m.reply('Donated '+n+' fictional coins. No real money is involved.');});
+ pub('donations','Your contribution and server fund',m=>m.reply('You: '+(me(m).donated||0)+' | Server fund: '+(state.economy.donations||0)+' fictional coins.'));
+ pub('membercount','Server member count, when supplied by Yapin',async m=>{const s=await bot.server(cfg.serverId);await m.reply('Members: '+(s.member_count??'Not exposed by API'));});
+ pub('rolelist','List role names and IDs',async m=>m.reply((await bot.roles(cfg.serverId)).slice(0,25).map(r=>String(r.name).replace(/@/g,'@\u200b')+' — '+r.id).join('\n')||'No roles.'));
+ pub('channelinfo','Current visible channel details',async m=>{const c=await bot.channel(m.channel_id);if(!c)throw Error('Channel unavailable.');await m.reply(`Channel ${c.name}\nID ${c.id}\nType ${c.kind||c.type}\nPrivate ${Boolean(c.private)}\nSlowmode ${c.slowmode||0}s`);});
+ pub('uptime','Bot process uptime',m=>m.reply('Uptime: '+Math.floor(process.uptime()/60)+' minutes'));
+ pub('botinfo','Installed bot features and command count',m=>m.reply(`HAWK #1 BOT | ${commands.size} built-ins | 500 custom-command capacity\nModeration, logs, tickets, economy, filtering. Use !help PAGE.`));
+ command('setnickname','USER_ID NICKNAME: update member nickname',async m=>{const id=String(m.argv[0]||'').replace(/^<@!?([\w-]+)>$/,'$1'),name=m.argv.slice(1).join(' ');if(!/^[\w-]{2,100}$/.test(id)||!name||name.length>32)throw Error('Provide USER_ID and a nickname up to 32 characters.');if([String(cfg.ownerId),String(bot.me?.id)].includes(id))throw Error('Protected target.');await bot.setNickname(cfg.serverId,id,name);await record('nickname',m.author_id,id,'Nickname changed');await m.reply('Nickname updated.');});
+ command('clearnickname','USER_ID: remove member nickname',async m=>{const id=String(m.argv[0]||'').replace(/^<@!?([\w-]+)>$/,'$1');if(!/^[\w-]{2,100}$/.test(id)||[String(cfg.ownerId),String(bot.me?.id)].includes(id))throw Error('Invalid or protected target.');await bot.setNickname(cfg.serverId,id,'');await record('nickname-clear',m.author_id,id);await m.reply('Nickname cleared.');});
+}

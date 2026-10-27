@@ -5,20 +5,23 @@ import { ServerRegistry } from './server-registry.js';
 import { installFeatures } from './features.js';
 import { LogService } from './logging.js';
 import { installTickets } from './tickets.js';
+import {installEmbeds,typedCommand,registerLimited} from './presentation.js';
 import { ownerFromServer, atomicSave } from './runtime.js';
 const root = new URL('./', import.meta.url);
 const config = JSON.parse(await readFile(new URL('hawk.config.json', root), 'utf8'));
 const bot = new Bot(process.env.YAPPER_BOT_TOKEN, { prefixes: ['!', '/'] });
+installEmbeds(bot);
+const prefixOnly = new Set();
 const dir = new URL('data/', root); await mkdir(dir, { recursive: true });
 const registered = new Set();
 const registry = new ServerRegistry(createProtection);
 function register(name,description) {
  if(registered.has(name))return; registered.add(name);
- bot.command(name,description,async msg=>{
+ registerLimited(bot,name,description,async msg=>{
   if(!msg.server_id)return msg.reply('Use this command inside a server.');
   try {const protection=await registry.get(msg.server_id);return await protection.handlers.get(name)(msg);}
   catch(e){console.error('Command routing failed:',e.message);return msg.reply('Hawk could not load server protection. Check the bot console.');}
- });
+ },prefixOnly);
 }
 async function createProtection(serverId) {
  // Each server owns its state, counters, quarantine records and recovery lock.
@@ -169,7 +172,7 @@ async function receiveTicketDM(message){
 }
 for(const event of ['message','member_join','member_leave'])bot.on(event,async ev=>{
  if(!ev.server_id){if(event==='message')await receiveTicketDM(ev);return;}
- try{const protection=await registry.get(ev.server_id);await protection.events.get(event)?.(ev);}
+ try{const protection=await registry.get(ev.server_id);if(event==='message'){const typed=typedCommand(ev,prefixOnly,bot.me?.id);if(typed){Object.assign(ev,typed);await protection.handlers.get(typed.command)?.(ev);}}await protection.events.get(event)?.(ev);}
  catch(e){console.error('Event routing failed:',e.message);}
 });
 let discovering=false;

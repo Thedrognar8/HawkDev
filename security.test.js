@@ -87,8 +87,8 @@ test('failed persistence rolls back economy mutation',async()=>{
 test('swear filter attempts deletion, timeout and audit record',async()=>{
  const h=featureHarness();assert.equal(await h.features.filter({...h.message(),content:'fuckyou'}),true);assert.deepEqual(h.calls,['delete','timeout','record']);
 });
-test('feature commands fit within SDK registration budget',()=>{
- const h=featureHarness();assert.ok(h.commands.size+24<=100);assert.ok(h.commands.has('customadd'));assert.ok(h.commands.has('filter'));assert.ok(h.commands.has('daily'));
+test('feature command set stays within the documented expanded total',()=>{
+ const h=featureHarness();assert.ok(h.commands.size+24<=150);assert.ok(h.commands.has('customadd'));assert.ok(h.commands.has('filter'));assert.ok(h.commands.has('daily'));
 });
 import {LogService,cleanLog} from './logging.js';
 function logHarness(){const state={replacements:{}},sent=[];let fail=false;const bot={channel:async id=>({id,server_id:'server',kind:'text'}),send:async(id,text)=>{if(fail)throw Error('Missing permission');sent.push({id,text});}};const logger=new LogService({state,save:async()=>{},bot,serverId:'server'});return {state,sent,bot,logger,setFail:value=>{fail=value;}};}
@@ -139,4 +139,32 @@ test('support role recognition, claim and safe archive',async()=>{
  await assert.rejects(h.handlers.get('ticketclose')(h.message('stranger',[],t.channelId)));
  await h.handlers.get('ticketreply')(h.message('helper',['hello'],t.channelId));assert.equal(t.messages.length,1);
  await h.handlers.get('ticketclose')(h.message());assert.equal(t.status,'closed');assert.equal(h.channels.get(t.channelId).private,true);assert.equal(h.channels.get(t.channelId).readOnly,true);assert.equal(h.channels.size,1);
+});
+import {responseEmbed,installEmbeds,typedCommand,registerLimited} from './presentation.js';
+import {installMore} from './more-commands.js';
+test('all ordinary bot responses use safe embeds and preserve reply metadata',async()=>{
+ const calls=[],bot={send:async(...args)=>calls.push(args)};installEmbeds(bot);await bot.send('channel','hello @everyone',{replyTo:'message'});
+ assert.equal(calls[0][1],'');assert.equal(calls[0][2].replyTo,'message');assert.ok(!calls[0][2].embeds[0].description.includes('@everyone'));assert.equal(responseEmbed('Hawk: failure').color,0xed4245);
+ const embed={title:'Existing'};await bot.send('channel','',{embeds:[embed]});assert.equal(calls[1][2].embeds[0],embed);assert.equal(responseEmbed('x'.repeat(8000)).description.length,4000);
+});
+test('130 built-ins register 100 menu commands and keep 30 typed commands',()=>{
+ const bot={commands:new Map(),command(n,d,f){if(this.commands.size>=100)throw Error('SDK limit');this.commands.set(n,f);}},prefix=new Set();
+ for(let i=0;i<130;i++)registerLimited(bot,'cmd'+i,'description',()=>{},prefix);
+ assert.equal(bot.commands.size,100);assert.equal(prefix.size,30);assert.deepEqual(typedCommand({content:'!cmd129 a b'},prefix,'bot'),{command:'cmd129',args:'a b',argv:['a','b']});
+ assert.equal(typedCommand({content:'!cmd129',author_bot:true},prefix,'bot'),null);assert.equal(typedCommand({content:'!cmd129',command_for:['other']},prefix,'bot'),null);assert.equal(typedCommand({content:'!cmd129',command:'cmd129'},prefix,'bot'),null);
+});
+test('exactly 50 new commands and public economy shortcuts',()=>{
+ const entries=new Map(),pub=(n,d,f)=>entries.set(n,{f,access:'public'}),command=(n,d,f)=>entries.set(n,{f,access:'admin'});
+ installMore({pub,command,commands:entries,handlers:new Map(),tx:async f=>f(),me:()=>({}),state:{},bot:{},cfg:{},record:async()=>{}});
+ assert.equal(entries.size,50);for(const name of ['eco','bal','dep','with','fish','mine','craft','quests','pickjob','buybusiness'])assert.equal(entries.get(name).access,'public');assert.equal(entries.get('setnickname').access,'admin');
+});
+test('resource gathering cooldown and crafting cannot be repeated for free',async()=>{
+ const h=featureHarness();await h.handlers.get('mine')(h.message());assert.equal(h.state.economy.users.user.resources.ore,1);await assert.rejects(h.handlers.get('mine')(h.message()));
+ await assert.rejects(h.handlers.get('buybusiness')(h.message(['constructor'])));assert.ok(Number.isFinite(h.state.economy.users.user.wallet));
+ await assert.rejects(h.handlers.get('buy')(h.message(['constructor'])));assert.ok(Number.isFinite(h.state.economy.users.user.wallet));
+ const a=h.state.economy.users.user;a.resources.ore=4;a.resources.herbs=3;await h.handlers.get('craft')(h.message(['rod']));assert.equal(h.state.economy.users.user.gear.rod,true);await assert.rejects(h.handlers.get('craft')(h.message(['rod'])));
+});
+test('quests pay only once and job changes do not reset salary cooldown',async()=>{
+ const h=featureHarness();await h.handlers.get('balance')(h.message());const a=h.state.economy.users.user;a.tasks={gathered:10};await h.handlers.get('claimquest')(h.message(['gatherer']));assert.equal(h.state.economy.users.user.wallet,500);await assert.rejects(h.handlers.get('claimquest')(h.message(['gatherer'])));
+ await h.handlers.get('pickjob')(h.message(['courier']));await h.handlers.get('salary')(h.message());await h.handlers.get('pickjob')(h.message(['engineer']));await assert.rejects(h.handlers.get('salary')(h.message()));
 });

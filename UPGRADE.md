@@ -108,3 +108,35 @@ Support-role or Administrator commands, inside a private ticket staff room:
 Replies, claims and settings are stored per server. Current support-role membership is checked for staff commands. When changing the configured role, existing room permissions are NOT automatically rewritten: review those channels separately. Transcripts store at most 500 text messages per ticket; oldest entries expire beyond that limit. Attachments are not relayed automatically. There is a three-second per-ticket incoming-message cooldown. Transcripts and channels remain after closing; closed rooms are private/read-only. Treat local data backups as private support records.
 
 Ticket logs record IDs/actions without copying private conversation text into the general staff log. Live ticket delivery has not been tested with real members. 32 offline tests passed, including failed privacy setup, blocked DMs, duplicate opens, sender ownership, privacy changes, staff roles, replies and archival. There are now 80 registered built-in commands, plus the DM !ticketmsg router and capacity for 500 custom text-response commands.
+
+## Embeds and 50 more commands
+
+Restart Hawk after updating. All ordinary chat responses now use purple HAWK embeds, errors use red cards, and logs use teal cards. This includes command replies, ticket messages, moderation notices and custom responses. Already-built embed messages are preserved. The terminal launcher remains terminal text. Embedded descriptions are limited to 4000 characters and mentions are neutralized.
+
+There are now **130 built-in commands**. Yapin's SDK caps menu registration at 100. The remaining 30 are handled by the same authorization/rate-limit layer when typed with ! (or a typed / prefix if Yapin delivers it as an ordinary message). They will not all appear in the slash composer. Use !help PAGE or !commandcount. Custom response capacity remains 500 per server; this is separate from the built-in count.
+
+New PUBLIC economy shortcuts:
+!eco = !economy; !bal = !balance; !dep = !deposit; !with = !withdraw; !inv = !inventory; !lb = !richest.
+
+New PUBLIC commands:
+- wallet, networth, rank, richbank, milestone
+- item ITEM, sellprice RESOURCE, prices, payhelp
+- hourly, salary
+- fish, mine, forage, hunt, harvest (one-minute individual cooldowns)
+- resources, recipes, craft rod|pickaxe|backpack
+- sellresource RESOURCE QUANTITY
+- xp, level, achievements, taskstats, quests, claimquest gatherer|trader
+- pickjob courier|farmer|engineer, jobs, job, resign
+- business, businesses, buybusiness kiosk|cafe|warehouse, collectbusiness, upgradebusiness
+- donate AMOUNT, donations (fictional coins only)
+- membercount, rolelist, channelinfo, uptime, botinfo
+
+New ADMIN commands:
+- setnickname USER_ID NICKNAME
+- clearnickname USER_ID
+
+Economy progression: gather resources, sell them or craft gear for triple gathering yield. Quest rewards can be claimed once. Pick a job and collect hourly salary; changing jobs does not reset the salary cooldown. Own one business, collect whole hours of income (up to 24 accrued hours), and upgrade to tier 5. Collect before upgrading: upgrading restarts accrual. No real-money purchases, payments or gambling are involved. All new economy mutations share the existing serialized transaction/rollback mechanism.
+
+Economy/help commands are public. Sensitive moderation, money administration, configuration and logs remain Administrator-only. Support-role commands retain ticket-specific permissions. Public access never grants the member the bot's server permissions.
+
+37 offline tests pass. New checks verify embed conversion and metadata, command-menu cap/fallback, public command access, one-time quests, gathering cooldowns, job cooldown continuity and invalid catalog-key rejection. This update did not send messages, change nicknames or spend live server coins during development.

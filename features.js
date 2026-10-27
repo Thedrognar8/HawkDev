@@ -1,3 +1,4 @@
+import {installMore} from './more-commands.js';
 import {account,amount,reward,transfer,move,buy,sell,ITEMS,customSet,findSwear} from './features-core.js';
 export function installFeatures({state,save,command,commands,handlers,hasAdmin,bot,cfg,record}) {
  state.economy||={users:{}};state.customCommands||={};state.filter||={enabled:true,minutes:5,words:[],allowed:[],channels:[],violations:{}};
@@ -43,6 +44,7 @@ export function installFeatures({state,save,command,commands,handlers,hasAdmin,b
  pub('avatar','Your profile picture',async m=>{const u=await bot.user(m.author_id);await m.reply(u.avatar_url||'No avatar available.');});
  pub('coinflip','Flip a coin',m=>m.reply(Math.random()<.5?'Heads':'Tails'));
  pub('roll','Roll a die: SIDES',m=>{const n=Number(m.argv[0]||6);if(!Number.isInteger(n)||n<2||n>1000)throw Error('Sides: 2-1000.');return m.reply(String(1+Math.floor(Math.random()*n)));});
+ installMore({pub,command,commands,handlers,tx,me,state,bot,cfg,record});
  const customCooldown=new Map(),filterCooldown=new Map();
  return {
  async filter(m){
