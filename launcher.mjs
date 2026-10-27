@@ -9,6 +9,7 @@ const terminal = Boolean(process.stdout.isTTY);
 const interactive = Boolean(process.stdin.isTTY && terminal);
 const args = new Set(process.argv.slice(2));
 let theme = 165;
+let launched = false;
 const paint = (code, text) => terminal && !process.env.NO_COLOR ? `\x1b[${code}m${text}\x1b[0m` : text;
 const accent = text => paint(`38;5;${theme}`, text);
 const line = () => console.log(accent('  ───────────────────────────────────────────────────'));
@@ -109,6 +110,7 @@ async function start() {
  process.env.YAPPER_BOT_TOKEN=token;input.close();
  line();console.log(paint('32','  LAUNCHING HAWK'));console.log(paint('90','  Waiting for Yapin connection... Ctrl+C to stop.\n'));
  await import('./hawk.js');
+ launched = true;
 }
 async function main() {
  banner();
@@ -133,4 +135,4 @@ async function main() {
   else console.log(paint('33','  Choose 0–6. Enter starts Hawk.\n'));
  }
 }
-try{await main();}catch(e){console.error(paint('31','\n  Launcher error: '+e.message));process.exitCode=1;}finally{input.close();}
+try{await main();}catch(e){console.error(paint('31','\n  Launcher error: '+e.message));process.exitCode=1;}finally{input.close();process.stdin.pause();if(!launched)process.exit(process.exitCode||0);}
