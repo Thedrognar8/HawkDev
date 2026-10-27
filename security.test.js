@@ -168,3 +168,17 @@ test('quests pay only once and job changes do not reset salary cooldown',async()
  const h=featureHarness();await h.handlers.get('balance')(h.message());const a=h.state.economy.users.user;a.tasks={gathered:10};await h.handlers.get('claimquest')(h.message(['gatherer']));assert.equal(h.state.economy.users.user.wallet,500);await assert.rejects(h.handlers.get('claimquest')(h.message(['gatherer'])));
  await h.handlers.get('pickjob')(h.message(['courier']));await h.handlers.get('salary')(h.message());await h.handlers.get('pickjob')(h.message(['engineer']));await assert.rejects(h.handlers.get('salary')(h.message()));
 });
+import {banWithNotice} from './moderation.js';
+test('ban notice is delivered only after successful ban and includes server/reason',async()=>{
+ const calls=[];let embed;const bot={server:async()=>({name:'Test Server'}),dm:async()=>{calls.push('dm');return 'dm-id';},ban:async()=>calls.push('ban'),send:async(c,t,o)=>{calls.push('send');embed=o.embeds[0];}};
+ assert.equal((await banWithNotice(bot,'server','user','Spam')).notified,true);assert.deepEqual(calls,['dm','ban','send']);assert.ok(embed.description.includes('Test Server'));assert.equal(embed.fields[0].value,'Spam');
+});
+test('blocked DM does not prevent a ban',async()=>{
+ let banned=false;const bot={server:async()=>({name:'Server'}),dm:async()=>{throw Error('DMs blocked');},ban:async()=>{banned=true;}};const r=await banWithNotice(bot,'server','user');assert.equal(banned,true);assert.equal(r.notified,false);
+});
+test('failed ban never sends a false confirmation',async()=>{
+ let sent=false;const bot={server:async()=>({name:'Server'}),dm:async()=>'dm',ban:async()=>{throw Error('Missing ban permission');},send:async()=>{sent=true;}};await assert.rejects(banWithNotice(bot,'server','user'));assert.equal(sent,false);
+});
+test('post-ban notice failure is reported without repeating the ban',async()=>{
+ let bans=0;const bot={server:async()=>({name:'Server'}),dm:async()=>'dm',ban:async()=>{bans++;},send:async()=>{throw Error('No longer share a server');}};const r=await banWithNotice(bot,'server','user');assert.equal(r.notified,false);assert.equal(bans,1);
+});

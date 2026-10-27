@@ -53,7 +53,7 @@ const validToken = value => /^yb_\S+$/.test(value||'');
 async function diagnostics() {
  const checks=[];
  checks.push({name:'Node.js '+process.versions.node,ok:Number(process.versions.node.split('.')[0])>=18});
- const required=['bot.js','hawk.js','yapper.js','features.js','features-core.js','security.js','runtime.js','server-registry.js','logging.js','tickets.js','presentation.js','more-commands.js'];
+ const required=['bot.js','hawk.js','yapper.js','features.js','features-core.js','security.js','runtime.js','server-registry.js','logging.js','tickets.js','presentation.js','more-commands.js','moderation.js'];
  for(const name of required){try{await access(new URL(name,root));checks.push({name,ok:true});}catch{checks.push({name,ok:false});}}
  try {
   const cfg=JSON.parse((await readFile(new URL('hawk.config.json',root),'utf8')).replace(/^\uFEFF/,''));

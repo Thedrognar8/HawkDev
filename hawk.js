@@ -6,6 +6,7 @@ import { installFeatures } from './features.js';
 import { LogService } from './logging.js';
 import { installTickets } from './tickets.js';
 import {installEmbeds,typedCommand,registerLimited} from './presentation.js';
+import {banWithNotice} from './moderation.js';
 import { ownerFromServer, atomicSave } from './runtime.js';
 const root = new URL('./', import.meta.url);
 const config = JSON.parse(await readFile(new URL('hawk.config.json', root), 'utf8'));
@@ -111,7 +112,8 @@ command('backup','Replace baseline: confirm',async m=>{if(m.argv[0]!=='confirm')
 command('restore','Recreate missing public channels',async m=>{if(busy)throw Error('Busy; retry.');busy=true;try{await m.reply('Restored '+await recover()+' channels.');}finally{busy=false;}},true);
 command('quarantine','Strip confirmed attacker roles: USER_ID',async m=>{await quarantine(user(m),m.author_id);await m.reply('Roles removed; recovery record saved.');},true);
 command('release','Restore roles: USER_ID confirm',async m=>{const u=user(m);if(m.argv[1]!=='confirm')throw Error('Use !release USER_ID confirm.');const q=state.quarantine[u];if(!q)throw Error('No quarantine record.');for(const r of [...q.removed]){await bot.addRole(cfg.serverId,u,r);q.removed=q.removed.filter(x=>x!==r);await save();}delete state.quarantine[u];await record('release',m.author_id,u);await m.reply('Roles restored.');},true);
-for(const action of ['ban','kick','unban'])command(action,action+' USER_ID reason',async m=>{const u=user(m);await bot[action](cfg.serverId,u);await record(action,m.author_id,u,m.argv.slice(1).join(' '));await m.reply(action+' completed.');});
+command('ban','Ban USER_ID reason and notify them privately',async m=>{const u=user(m),reason=m.argv.slice(1).join(' ')||'No reason provided.';const notice=await banWithNotice(bot,cfg.serverId,u,reason);await record('ban',m.author_id,u,reason+' | Private notice: '+(notice.notified?'delivered':notice.error));await m.reply(notice.notified?'Ban completed. The member received a private ban notice.':'Ban completed. The private notice could not be delivered (DMs may be blocked).');});
+for(const action of ['kick','unban'])command(action,action+' USER_ID reason',async m=>{const u=user(m);await bot[action](cfg.serverId,u);await record(action,m.author_id,u,m.argv.slice(1).join(' '));await m.reply(action+' completed.');});
 command('timeout','USER_ID MINUTES reason',async m=>{const u=user(m),minutes=num(m.argv[1],1,40320);await bot.timeout(cfg.serverId,u,minutes,m.argv.slice(2).join(' '));await record('timeout',m.author_id,u,String(minutes));await m.reply('Timeout applied.');});
 command('untimeout','Clear timeout: USER_ID',async m=>{const u=user(m);await bot.timeout(cfg.serverId,u,0);await record('untimeout',m.author_id,u);await m.reply('Timeout cleared.');});
 command('warn','USER_ID reason',async m=>{const u=user(m),reason=m.argv.slice(1).join(' ');if(!reason)throw Error('Reason required.');(state.warnings[u]||=[]).push({reason,actor:m.author_id,time:Date.now()});await record('warn',m.author_id,u,reason);await m.reply('Warning recorded.');});

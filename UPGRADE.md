@@ -140,3 +140,7 @@ Economy progression: gather resources, sell them or craft gear for triple gather
 Economy/help commands are public. Sensitive moderation, money administration, configuration and logs remain Administrator-only. Support-role commands retain ticket-specific permissions. Public access never grants the member the bot's server permissions.
 
 37 offline tests pass. New checks verify embed conversion and metadata, command-menu cap/fallback, public command access, one-time quests, gathering cooldowns, job cooldown continuity and invalid catalog-key rejection. This update did not send messages, change nicknames or spend live server coins during development.
+
+## Private ban notices
+
+/ban USER_ID reason (or !ban) opens a DM before removing the shared-server relationship, applies the ban, then sends a red embed: 'You have been banned from SERVER NAME', with the reason. If opening or sending the DM fails, the ban still succeeds and the moderator response/log records the delivery failure. If the ban fails, no false ban confirmation is sent. No real member was banned during development; 41 offline tests pass.

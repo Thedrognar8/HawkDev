@@ -20,6 +20,7 @@ Bot chat replies use consistent embeds. Members can use `!eco`, `!bal`, `!daily`
 
 - **130 built-in commands**, plus capacity for **500 custom text-response commands** per server.
 - Join-raid, flood, and mass-mention containment.
+- Private red-embed ban notices containing the server name and reason, with delivery-failure reporting.
 - Configurable swear filtering with timeout length, word exceptions, and channel exceptions.
 - Recovery snapshots and public-channel recreation.
 - Role quarantine and restoration for a **verified** attacker.
@@ -41,7 +42,7 @@ Keep one running process per data directory and back up that directory separatel
 
 ## Tests and private data
 
-Run `npm test`. The project has **37 offline tests** covering permissions, isolation, filtering, economy, persistence, custom commands, and log delivery. Test live platform behavior in a private disposable server before relying on protection.
+Run `npm test`. The project has **41 offline tests** covering permissions, isolation, filtering, economy, persistence, custom commands, and log delivery. Test live platform behavior in a private disposable server before relying on protection.
 
 Tokens, environment files, `data/`, logs, and local backups are excluded by `.gitignore`. No token or private server data is included in this repository.
 
