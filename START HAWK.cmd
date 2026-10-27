@@ -1,7 +1,8 @@
 @echo off
 setlocal
+chcp 65001 >nul
 cd /d "%~dp0"
-title HAWK #1 BOT
+title VIGIL // OPERATIONS
 where node >nul 2>nul
 if errorlevel 1 (
   echo Node.js is missing. Install Node.js 18 or newer, then open this file again.
@@ -14,6 +15,6 @@ if not exist "bot.js" (
   exit /b 1
 )
 node bot.js
-if errorlevel 1 echo HawkDev stopped with an error. Read the message above.
+if errorlevel 1 echo Vigil stopped with an error. Read the message above.
 echo.
 pause

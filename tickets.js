@@ -18,7 +18,7 @@ export function installTickets({state,save,command,bot,cfg,hasAdmin,record}) {
   const id=String(m.argv[0]||'').replace(/^<@&([\w-]+)>$/,'$1');const role=(await bot.roles(cfg.serverId)).find(r=>String(r.id)===id);
   if(!role||/^@?everyone$/i.test(role.name))throw Error('Choose a real support role, not @everyone.');
   settings.roleId=id;
-  if(!settings.categoryId)settings.categoryId=String((await bot.createCategory(cfg.serverId,'Hawk Support')).id);
+  if(!settings.categoryId)settings.categoryId=String((await bot.createCategory(cfg.serverId,'Vigil Support')).id);
   settings.enabled=true;await save();await record('ticket-setup',m.author_id,id);await m.reply('Tickets enabled. Members: !ticket. Staff: !ticketreply TEXT inside the private ticket room.');
  });
  admin('ticketrole','SUPPORT_ROLE_ID: change role for future tickets',async m=>{
@@ -31,10 +31,10 @@ export function installTickets({state,save,command,bot,cfg,hasAdmin,record}) {
  admin('tickettoggle','on|off: allow new tickets',async m=>{if(!['on','off'].includes(m.argv[0]))throw Error('Use on or off.');if(m.argv[0]==='on'&&(!settings.roleId||!settings.categoryId))throw Error('Run !ticketsetup SUPPORT_ROLE_ID first.');settings.enabled=m.argv[0]==='on';await save();await record('ticket-toggle',m.author_id,cfg.serverId,m.argv[0]);await m.reply('New tickets '+m.argv[0]+'. Existing tickets still work.');});
  admin('ticketlimit','1-3: open tickets per member per server',async m=>{const n=Number(m.argv[0]);if(!Number.isInteger(n)||n<1||n>3)throw Error('Choose 1-3.');settings.limit=n;await save();await record('ticket-limit',m.author_id,cfg.serverId,String(n));await m.reply('Ticket limit saved.');});
  admin('ticketsettings','Show ticket configuration',m=>m.reply(JSON.stringify({...settings,open:Object.values(data.items).filter(t=>t.status==='open').length})));
- admin('ticketpanel','Post ticket instructions here',async m=>{await m.say('🎟 HAWK SUPPORT\nNeed help? Type !ticket here, then send your details to Hawk in DMs. Only support staff/server administrators can access the staff ticket room. Do not post private information in this public channel.');});
+ admin('ticketpanel','Post ticket instructions here',async m=>{await m.say('🎟 VIGIL SUPPORT\nNeed help? Type !ticket here, then send your details to Vigil in DMs. Only support staff/server administrators can access the staff ticket room. Do not post private information in this public channel.');});
  pub('ticket','Open a private support conversation',m=>serial(async()=>{
   if(!settings.enabled||!settings.roleId||!settings.categoryId)throw Error('Tickets are not configured or are currently disabled.');
-  if(openFor(m.author_id).length>=settings.limit)throw Error('You already reached your open-ticket limit. Continue by messaging Hawk privately.');
+  if(openFor(m.author_id).length>=settings.limit)throw Error('You already reached your open-ticket limit. Continue by messaging Vigil privately.');
   // Open DM first; failure must not create an unusable support room.
   const dm=String(await bot.dm(m.author_id));
   const t={id:'T-'+randomUUID().slice(0,8),owner:String(m.author_id),dmChannelId:dm,channelId:'',status:'opening',created:new Date().toISOString(),claimedBy:'',messages:[]};
@@ -45,9 +45,9 @@ export function installTickets({state,save,command,bot,cfg,hasAdmin,record}) {
    await bot.editChannel(t.channelId,{private:true,roleIds:[settings.roleId]});await privateRoom(t);
    const server=await bot.server(cfg.serverId);
    await bot.send(dm,`Ticket ${t.id} opened for ${clean(server.name||cfg.serverId)}. Messages sent here are relayed to that server's support staff. Send text describing your issue. If several tickets are open, use !ticketmsg ${t.id} YOUR MESSAGE. Use !ticketclose in the original server to close your ticket.`);
-   await bot.send(t.channelId,`🎟 ${t.id}\nMember ID: ${t.owner}\nStaff: !ticketclaim | !ticketreply TEXT | !ticketclose\nMessages from the member arrive here through Hawk DMs.`);
-   t.status='open';await save();await record('ticket-open',m.author_id,t.id);await m.reply('Your support ticket is open. Check your DMs from Hawk.');
-  }catch(e){t.status='failed';t.error=String(e.message).slice(0,300);await save();await record('ticket-open-failed',m.author_id,t.id,t.error);throw Error('Could not open ticket: '+e.message+' Check bot channel permissions and allow DMs from Hawk.');}
+   await bot.send(t.channelId,`🎟 ${t.id}\nMember ID: ${t.owner}\nStaff: !ticketclaim | !ticketreply TEXT | !ticketclose\nMessages from the member arrive here through Vigil DMs.`);
+   t.status='open';await save();await record('ticket-open',m.author_id,t.id);await m.reply('Your support ticket is open. Check your DMs from Vigil.');
+  }catch(e){t.status='failed';t.error=String(e.message).slice(0,300);await save();await record('ticket-open-failed',m.author_id,t.id,t.error);throw Error('Could not open ticket: '+e.message+' Check bot channel permissions and allow DMs from Vigil.');}
  }));
  pub('tickets','List your open tickets',m=>m.reply(openFor(m.author_id).map(t=>`${t.id} | Opened ${t.created}`).join('\n')||'No open tickets. Use !ticket.'));
  support('ticketclaim','Assign this ticket to yourself',m=>serial(async()=>{const t=inChannel(m);await privateRoom(t);if(t.status!=='open')throw Error('Ticket is closed.');if(t.claimedBy&&t.claimedBy!==String(m.author_id))throw Error('Already claimed by another staff member.');t.claimedBy=String(m.author_id);await save();await record('ticket-claim',m.author_id,t.id);await m.reply('Ticket claimed.');}));
@@ -62,7 +62,7 @@ export function installTickets({state,save,command,bot,cfg,hasAdmin,record}) {
   // Archive in place instead of deleting the transcript or triggering channel recovery.
   await bot.editChannel(t.channelId,{name:'closed-'+t.id.slice(2),readOnly:true,postRoleIds:[]});
   t.status='closed';t.closed=new Date().toISOString();await save();await record('ticket-close',m.author_id,t.id);
-  try{await bot.send(t.dmChannelId,`[${t.id}] Ticket closed. Open another with !ticket in the server if you need more help.`);}catch(e){await record('ticket-close-dm-failed','Hawk',t.id,e.message);}
+  try{await bot.send(t.dmChannelId,`[${t.id}] Ticket closed. Open another with !ticket in the server if you need more help.`);}catch(e){await record('ticket-close-dm-failed','Vigil',t.id,e.message);}
   await m.reply('Ticket closed and archived privately.');
  }));
  support('tickettranscript','PAGE: saved text transcript in staff room',async m=>{const t=inChannel(m);await privateRoom(t);const page=Number(m.argv[0]||1);if(!Number.isInteger(page)||page<1)throw Error('Choose a positive page number.');const lines=t.messages.slice((page-1)*5,page*5).map(x=>`${x.time} | ${x.from}\n${clean(x.text).slice(0,260)}`);await m.reply(`Transcript ${t.id} | page ${page} | ${t.truncated?'oldest entries expired':'stored text'}\n`+(lines.join('\n\n')||'No entries on this page.'));});

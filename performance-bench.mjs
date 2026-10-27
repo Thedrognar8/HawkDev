@@ -1,0 +1,14 @@
+import {performance} from 'node:perf_hooks';
+import {setTimeout as delay} from 'node:timers/promises';
+import {PermissionGate,withRequest,installReadMemo} from './performance.js';
+const simulatedLatency=30;let calls=0;
+const fake={server:async()=>{calls++;await delay(simulatedLatency);return {owner_id:'owner'};},member:async()=>{calls++;await delay(simulatedLatency);return {roles:['admin']};},roles:async()=>{calls++;await delay(simulatedLatency);return [{id:'admin',perms:{administrator:true}}];}};
+console.log('\n  VIGIL / OFFLINE SPEED BENCH');
+console.log('  Simulated API latency: 30 ms. No live network calls or token reads.');
+let start=performance.now();await fake.server('server');await Promise.all([fake.member('server','user'),fake.roles('server')]);const baseline=performance.now()-start;
+installReadMemo(fake);const gate=new PermissionGate(fake,{serverId:'server'});calls=0;start=performance.now();await withRequest(()=>Promise.all(Array.from({length:5},()=>gate.check('user'))));const optimized=performance.now()-start;
+console.log('  Sequential server + role reads: '+baseline.toFixed(1)+' ms');
+console.log('  Parallel, five repeated in-event checks: '+optimized.toFixed(1)+' ms');
+console.log('  Optimized API calls: '+calls+' (five checks share the same three reads).');
+console.log('  Authorization is fetched again for the next incoming event.');
+console.log('  Actual Yapin response time depends on its API, network and rate limits.\n');

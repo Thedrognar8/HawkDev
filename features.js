@@ -7,7 +7,7 @@ export function installFeatures({state,save,command,commands,handlers,hasAdmin,b
  const uid=x=>String(x||'').replace(/^<@!?([\w-]+)>$/,'$1');
  function tx(fn){const next=queue.then(async()=>{const snapshot=structuredClone(state.economy);try{const result=fn();await save();return result;}catch(e){state.economy=snapshot;throw e;}});queue=next.catch(()=>{});return next;}
  const pub=(n,d,fn)=>command(n,d,fn,'public');
- pub('help','Paginated commands: PAGE',m=>{const page=Math.max(1,Number(m.argv[0])||1),list=[...commands],pages=Math.ceil(list.length/12);return m.reply(`Hawk commands (${list.length}) — page ${page}/${pages}\n`+list.slice((page-1)*12,page*12).map(([n,d])=>'!'+n+' — '+d).join('\n')+'\nEconomy/help: everyone. Moderation/config: Administrator. Custom: !customlist');});
+ pub('help','Paginated commands: PAGE',m=>{const page=Math.max(1,Number(m.argv[0])||1),list=[...commands],pages=Math.ceil(list.length/12);return m.reply(`Vigil commands (${list.length}) — page ${page}/${pages}\n`+list.slice((page-1)*12,page*12).map(([n,d])=>'!'+n+' — '+d).join('\n')+'\nEconomy/help: everyone. Moderation/config: Administrator. Custom: !customlist');});
  pub('balance','Your coin balance',m=>m.reply('Wallet: '+me(m).wallet+' coins | Bank: '+me(m).bank));
  pub('bank','Your bank balance',m=>m.reply('Bank: '+me(m).bank+' coins'));
  pub('daily','Claim 1,000 coins every 24 hours',async m=>m.reply('Claimed '+await tx(()=>reward(me(m),'daily',86400000,1000))+' coins.'));
@@ -53,9 +53,9 @@ export function installFeatures({state,save,command,commands,handlers,hasAdmin,b
   if(await hasAdmin(m.author_id))return false;
   if(Date.now()-(filterCooldown.get(m.author_id)||0)<5000)return true;filterCooldown.set(m.author_id,Date.now());
   // Attempt both actions even if deletion lacks permission; report individual failures.
-  const results=await Promise.allSettled([bot.delete(m.channel_id,m.id),bot.timeout(cfg.serverId,m.author_id,f.minutes,'Hawk swear filter')]);
+  const results=await Promise.allSettled([bot.delete(m.channel_id,m.id),bot.timeout(cfg.serverId,m.author_id,f.minutes,'Vigil swear filter')]);
   f.violations[m.author_id]=(f.violations[m.author_id]||0)+1;
-  await record('swear-filter','Hawk',m.author_id,results.map((r,i)=>`${i===0?'delete':'timeout'}: ${r.status}${r.reason?': '+r.reason.message:''}`).join('; '));
+  await record('swear-filter','Vigil',m.author_id,results.map((r,i)=>`${i===0?'delete':'timeout'}: ${r.status}${r.reason?': '+r.reason.message:''}`).join('; '));
   return true;
  },
  async custom(m){

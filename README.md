@@ -1,49 +1,74 @@
-# HawkDev
+# Vigil — moderation, tickets and economy for Yapin
 
-A Node.js moderation bot for Yapin with anti-raid monitoring, public-channel recovery, a configurable swear filter, economy commands, and server-scoped logs.
+A Node.js community bot with **243 built-in command names** (including aliases), embedded responses, private support tickets, economy progression, configurable moderation, and a clearly marked honeypot.
 
 ## Start
 
-1. Install **Node.js 18 or newer**.
-2. Create `token.txt` beside `bot.js` and paste your **Yapin bot token**. Alternatively set `YAPPER_BOT_TOKEN` or paste it at the launcher prompt.
-3. Double-click **START HAWK.cmd**, or run `npm start`.
-4. Add the bot to your server and grant the permissions required by the features you use.
-5. Run `!setlogs` in a private staff text channel, then `!logtest`. Use `!help 1` for commands.
+1. Install Node.js 18 or newer.
+2. Put your Yapin bot token in `token.txt` beside `bot.js`, or set `YAPPER_BOT_TOKEN`.
+3. Open **START VIGIL.cmd** and choose **1**. Use `node bot.js --start` for direct startup.
+4. Give the bot the permissions and role hierarchy needed for your enabled features.
+5. In a private staff channel run `!setlogs`, then `!logtest`.
 
-No server ID or user ID needs to be entered. Server owners and current members with a role whose `perms.administrator` is true can use moderation/configuration commands. Economy and selected informational/fun commands are available to members.
+Server and owner IDs are detected automatically. Administrators can configure moderation; support-role staff can manage tickets; ordinary members can use economy and selected public commands. The first **100** commands are registered in Yapin's composer. The other **143** still work when typed with `!`.
 
-## Embeds and public economy
+Read [COMMANDS.md](COMMANDS.md) for the generated command catalog, [REQUEST-COVERAGE.md](REQUEST-COVERAGE.md) for a feature-by-feature review of the 210 supplied ideas, and [UPGRADE.md](UPGRADE.md) for previous changes.
 
-Bot chat replies use consistent embeds. Members can use `!eco`, `!bal`, `!daily`, `!work`, gathering, crafting, jobs, quests, and business commands without Administrator. Sensitive controls remain restricted. The first 100 commands appear in the platform menu; the other 30 work when typed with `!`. See UPGRADE.md for the full new command list.
+## Vigil operations terminal
 
-## Included
+Open **START VIGIL.cmd**. The earlier START HAWK.cmd shortcut still starts the same updated bot. The terminal includes a short boot sequence, four accent themes, parallel preflight checks, command search, a read-only local ticket/log/task overview, the test suite, and an offline speed benchmark. No user IDs or tokens are printed by the overview.
 
-- **130 built-in commands**, plus capacity for **500 custom text-response commands** per server.
-- Join-raid, flood, and mass-mention containment.
-- Private red-embed ban notices containing the server name and reason, with delivery-failure reporting.
-- Configurable swear filtering with timeout length, word exceptions, and channel exceptions.
-- Recovery snapshots and public-channel recreation.
-- Role quarantine and restoration for a **verified** attacker.
-- Fictional economy: rewards, work, payments, banking, shop, and inventory.
-- Configurable support tickets: private staff channels with a DM bridge, claims, replies, and archived transcripts.
-- Persistent moderation cases and queued in-server log delivery.
+Responsiveness improvements: independent permission reads run concurrently; the current owner needs only a fresh owner check; duplicate reads/alias checks are reused only within one incoming event. The next event rechecks permissions. Cases and log-outbox entries are saved together, then server log delivery runs in the background. Server discovery is bounded to three concurrent workers. Platform API latency and rate limits still apply.
 
-Read [UPGRADE.md](UPGRADE.md) for command usage and operating details.
+Run `npm run benchmark` or choose **08** for a simulated-latency benchmark. It makes no network calls and is not a measurement of live Yapin response speed. Node 22+ supports the SDK's WebSocket gateway; older supported versions can use its polling fallback.
 
-## Practical limits
+## Honeypot
 
-The SDK does not expose reliable audit attribution for channel deletion, mass bans, or kicks. Hawk cannot automatically identify the responsible admin: verify responsibility before using `!quarantine USER_ID`.
+The honeypot starts disabled. Run `!honeypot create` to create an armed `do-not-post` channel with a warning. Default enforcement deletes a non-staff post and applies a **10-minute timeout**, with an audit/log entry. Bots and staff are exempt.
 
-Channel recovery cannot restore messages, original IDs, exact positions, or deleted roles. Private channels are skipped to prevent exposing permissions incorrectly. Lost visibility can look like channel deletion: keep bot access stable, or disable automatic recovery for staff-reviewed restores. Never run `!backup confirm` during an attack.
+- `!honeypot status`, `!honeypot off`, `!honeypot on`
+- `!honeypot time 5` — timeout minutes
+- `!honeypot action log` — observation only; no deletion or punishment
+- `!honeypot action timeout` — use configured timeout
+- `!honeypot action kick confirm` or `!honeypot action ban confirm`
+- `!honeypot test` — dry-run log; does not punish anyone
+- `!honeypot set confirm` — use the current dedicated decoy channel instead
 
-The swear filter is heuristic and cannot recognize every language or context. Administrators are exempt. Bot permissions and role hierarchy still apply to moderation. Economy coins have no cash value.
+## New moderation examples
 
-Keep one running process per data directory and back up that directory separately. The bot cannot prevent server owners removing it or local users deleting its files.
+- `!tempban USER_ID 2h reason`, `!tasks`, `!canceltask TASK_ID`
+- `!massban ID1,ID2 confirm reason` — at most 20 targets, protected targets checked first
+- `!mute USER_ID 10m reason`, `!extendmute USER_ID 5m`
+- `!warnthreshold 3 10`, `!warnexpire 7`, `!unwarn USER_ID 1`
+- `!purgeuser USER_ID`, `!purgelinks` — scans only the last 100 visible messages
+- `!role add USER_ID ROLE_ID`, `!temprole USER_ID ROLE_ID 1h`
+- `!autorole ROLE_ID`, `!verification setup ROLE_ID`, `!verify`
+- `!reactionrole MESSAGE_ID EMOJI ROLE_ID`
+- `!report USER_ID reason`, `!reports`, `!note add USER_ID TEXT`
+- `!automod status`, `!automod test TEXT`, `!antilink on`, `!linkwhitelist add example.com`
+- `!logs voice on`, `!logs disable joins`
 
-## Tests and private data
+Automatic/self-assigned/timed/reaction/bulk roles must be non-privileged. Use real platform timeouts for muting; a cosmetic mute role is not claimed to enforce permissions. Destructive batch/channel commands require a typed confirmation and have documented limits.
 
-Run `npm test`. The project has **41 offline tests** covering permissions, isolation, filtering, economy, persistence, custom commands, and log delivery. Test live platform behavior in a private disposable server before relying on protection.
+## Limits
 
-Tokens, environment files, `data/`, logs, and local backups are excluded by `.gitignore`. No token or private server data is included in this repository.
+Yapin is not Discord. This bot does not invent unsupported APIs for voice deafening, channel topics, role creation, deleted-message sniping, platform audit attribution, or NSFW image classification. See the coverage report for exact supported, partial and unavailable features.
+
+Channel recovery recreates supported public-channel settings, not messages, original IDs, deleted roles, or private access lists. Lost visibility can look like deletion. Review `autoRestore` before production use; never replace the recovery baseline during an attack.
+
+Scheduled unbans and temporary-role removal are persisted and resume after restart, with retries and failure records. They cannot run while the bot is offline. **Cancel a pending unban before intentionally replacing that ban outside Vigil**, since external ban actions cannot be reliably attributed by this SDK. Run one process per data directory.
+
+The filter is heuristic; staff review and exceptions may be needed. Verification is an opt-in role, not a captcha or proof of identity. Logs and staff history describe local Vigil actions unless explicitly identified otherwise. Ticket conversations use a DM bridge to private staff rooms; attachments are not automatically relayed.
+
+## Tests
+
+- `npm test` — **72 offline tests**
+- `npm run integration` — boots the actual bot module against a fake SDK/filesystem; verifies menu-limit routing, public economy, blocked unauthorized moderation and embed output. This uses Node's experimental VM-module test facility; the running bot does not require that flag.
+
+No real members were banned, muted, kicked or assigned roles by these development checks. Test live permissions in a private server before enabling enforcement.
+
+## Private files
+
+`token.txt`, `.env` files, `data/`, exports, logs and local backups must stay private. They are excluded from Git. Server state includes staff notes, reports, ticket transcripts and scheduled actions. Keep external backups; no bot can make local files undeletable or stop a server owner from removing it.
 
 The bundled `yapper.js` SDK is supplied by [Yapin](https://www.yapin.gg/developers). No license for that third-party SDK is asserted here.

@@ -1,10 +1,12 @@
 {
-  "name": "hawkdev-protection",
+  "name": "vigil-community-bot",
   "private": true,
   "type": "module",
   "scripts": {
     "start": "node bot.js",
-    "test": "node --test security.test.js"
+    "test": "node --test security.test.js",
+    "integration": "node --experimental-vm-modules integration-smoke.mjs",
+    "benchmark": "node performance-bench.mjs"
   },
   "engines": {
     "node": ">=18"
