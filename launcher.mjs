@@ -1,3 +1,4 @@
+import {VERSION} from './version.js';
 import {readFile,access,readdir,stat} from 'node:fs/promises';
 import {createInterface} from 'node:readline/promises';
 import {spawn} from 'node:child_process';
@@ -21,7 +22,7 @@ function banner(){
  const logo=['██╗   ██╗██╗ ██████╗ ██╗██╗     ','██║   ██║██║██╔════╝ ██║██║     ','██║   ██║██║██║  ███╗██║██║     ','╚██╗ ██╔╝██║██║   ██║██║██║     ',' ╚████╔╝ ██║╚██████╔╝██║███████╗','  ╚═══╝  ╚═╝ ╚═════╝ ╚═╝╚══════╝'];
  console.log('\n'+muted('  V I G I L  /  O P E R A T I O N S  T E R M I N A L')+'\n');
  logo.forEach((row,i)=>console.log(color('38;5;'+THEMES[theme].gradient[i],'       '+row)));
- console.log('\n'+color('1;97','                    #1 COMMUNITY BOT')+'\n');
+ console.log('\n'+color('1;97','                    #1 COMMUNITY BOT / v' + VERSION + '')+'\n');
  panel('SENTINEL / LOCAL CONSOLE',[
   'PROTECT. MODERATE. SUPPORT. BUILD YOUR COMMUNITY.',
   'Node '+process.versions.node+'  /  '+process.platform+'  /  '+THEMES[theme].name,

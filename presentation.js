@@ -1,8 +1,9 @@
+import {VERSION} from './version.js';
 export function responseEmbed(text){
  const value=String(text??'').replace(/@/g,'@\u200b');
  const error=/^(Vigil:|Ticket delivery failed:)|\b(TEST SUITE FAILED|PROTECTION ALERT|CHANNEL LOSS)\b/i.test(value);
  const log=value.startsWith('[VIGIL LOG]');
- return {title:error?'VIGIL • Attention':log?'VIGIL • Activity log':'VIGIL • #1 BOT',description:value.slice(0,4000)||'Done.',color:error?0xed4245:log?0x22b8a0:0xa855f7,footer:{text:'VIGIL  •  Community control center'},timestamp:new Date().toISOString()};
+ return {title:error?'VIGIL • Attention':log?'VIGIL • Activity log':'VIGIL • #1 BOT',description:value.slice(0,4000)||'Done.',color:error?0xed4245:log?0x22b8a0:0xa855f7,footer:{text:'VIGIL v'+VERSION+'  •  Community control center'},timestamp:new Date().toISOString()};
 }
 export function installEmbeds(bot){
  const send=bot.send.bind(bot);

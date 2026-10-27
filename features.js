@@ -1,3 +1,4 @@
+import {VERSION} from './version.js';
 import {randomUUID} from 'node:crypto';
 import {installMore} from './more-commands.js';
 import {account,amount,reward,transfer,move,buy,sell,ITEMS,customSet,findSwear} from './features-core.js';
@@ -9,7 +10,14 @@ export function installFeatures({state,save,command,commands,handlers,hasAdmin,b
  const uid=x=>String(x||'').replace(/^<@!?([\w-]+)>$/,'$1');
  function tx(fn){const next=queue.then(async()=>{const snapshot=structuredClone(state.economy);try{const result=fn();await save();return result;}catch(e){state.economy=snapshot;throw e;}});queue=next.catch(()=>{});return next;}
  const pub=(n,d,fn)=>command(n,d,fn,'public');
- pub('help','Paginated commands: PAGE',m=>{const page=Math.max(1,Number(m.argv[0])||1),list=[...commands],pages=Math.ceil(list.length/12);return m.reply(`Vigil commands (${list.length}) — page ${page}/${pages}\n`+list.slice((page-1)*12,page*12).map(([n,d])=>'!'+n+' — '+d).join('\n')+'\nEconomy/help: everyone. Moderation/config: Administrator. Custom: !customlist');});
+ pub('help','All commands, descriptions and running version',async m=>{
+  const lines=[...commands].map(([name,description])=>'/'+name+' — '+description);
+  const custom=Object.entries(state.customCommands);if(custom.length)lines.push('', 'CUSTOM COMMANDS',...custom.map(([name])=>'/'+name+' — Server custom response'));
+  const header='VIGIL v'+VERSION+' — COMPLETE COMMAND GUIDE\n'+commands.size+' built-in command names (including aliases).\nPublic economy/help: everyone. Moderation/config: Administrator. Ticket staff: support role or Administrator. Both / and ! prefixes work.\n\n';
+  // Deliver every entry automatically; do not silently truncate at the embed limit.
+  const chunks=[];let text=header;for(const line of lines){if(text.length+line.length+1>3400){chunks.push(text);text='';}text+=line+'\n';}if(text)chunks.push(text);
+  for(let i=0;i<chunks.length;i++)await m.reply((i?'VIGIL v'+VERSION+' — continued ('+(i+1)+'/'+chunks.length+')\n\n':'')+chunks[i]);
+ });
  pub('balance','Your coin balance',m=>m.reply('Wallet: '+me(m).wallet+' coins | Bank: '+me(m).bank));
  pub('bank','Your bank balance',m=>m.reply('Bank: '+me(m).bank+' coins'));
  pub('daily','Claim 1,000 coins every 24 hours',async m=>m.reply('Claimed '+await tx(()=>reward(me(m),'daily',86400000,1000))+' coins.'));

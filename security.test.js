@@ -333,3 +333,5 @@ test('ticket setup accepts support role name',async()=>{
 });
 
 test('honeypot setup is one step and repeated setup preserves the trap',async()=>{const h=honeypotHarness();await h.configure(['setup']);assert.equal(h.state.honeypot.enabled,true);assert.equal(h.state.honeypot.minutes,10);await h.configure(['setup']);assert.equal(h.calls.filter(x=>x==='warning').length,1);});
+
+test('help automatically includes every command and version without truncation',async()=>{const h=featureHarness(),replies=[];for(let i=0;i<250;i++)h.commands.set('testcommand'+i,'Description '+i+' '+ 'x'.repeat(60));await h.handlers.get('help')({...h.message(),reply:async text=>replies.push(text)});const all=replies.join('\n');assert.ok(all.includes('VIGIL v2.3'));for(const [name]of h.commands)assert.ok(all.includes('/'+name+' — '),name);assert.ok(replies.every(text=>text.length<=4000));});

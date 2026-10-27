@@ -87,3 +87,5 @@ Obsolete starters, Python samples/SDK, one-off probes and source backups were mo
 - Run /honeypot setup: creates a clearly warned decoy channel. Default: 10-minute timeout; staff and bots exempt. /honeypot status and /honeypot off manage it.
 - /autowarn on|off controls saved automatic language warnings; /filtertest TEXT previews matching. Existing /warnthreshold and /warnexpire apply. Standard filter timeouts remain enabled independently of autowarn.
 - /avatar removed. Commands addressed to other bots are ignored. Exact slurs, leetspeak and separated variants are filtered; innocent short fragments such as ni are not blocked by default.
+
+Vigil v2.3: /help automatically sends the complete command guide with descriptions and the running version. Long guides continue in bounded embeds without manual page commands.
