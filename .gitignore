@@ -6,12 +6,8 @@ token.txt
 *.log
 *.bak
 *.backup
-hawk-test-*/
+vigil-test-*/
+.archive/
 /starter.py
 /starter.js
-/check-permissions.mjs
-/count-commands.mjs
-/rename-profile.mjs
-/developers-reference.html
-/generate-command-docs.mjs
 /GitHub-export/

@@ -163,7 +163,7 @@ Log category toggles: !logs TYPE on|off or !logs disable TYPE, where TYPE is joi
 
 ## Vigil branding, operations terminal and responsiveness
 
-The bot's live Yapin display name is Vigil. Reply embeds, logs and terminal labels now use Vigil. START VIGIL.cmd launches the redesigned operations console; START HAWK.cmd remains a compatible shortcut. Storage/import file names stay compatible with existing installations and server data.
+The bot's live Yapin display name is Vigil. Reply embeds, logs and terminal labels now use Vigil. START VIGIL.cmd launches the redesigned operations console. The main script and config are vigil.js and vigil.config.json; existing server data is retained.
 
 The launcher has a VIGIL ASCII identity, four themes (Nebula/Glacier/Solar/Phosphor), short boot animation, concurrent startup-file checks, a command finder, local data overview, tests, and an offline speed benchmark. The overview shows aggregate counts from up to 20 state files and does not print user identities, conversations or tokens. Token formatting is checked locally; API connectivity is not falsely marked online before startup. Use --no-animation, --start, --check, --test or --benchmark for direct modes.
 

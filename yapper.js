@@ -814,7 +814,7 @@ export class Bot {
           if (m && this.commands.has(m[1].toLowerCase())) { name = m[1].toLowerCase(); args = (m[2] || '').trim(); break; }
         }
       }
-      if (name && this.commands.has(name)) {
+      if (name && !forOther && this.commands.has(name)) {
         const c = this.commands.get(name);
         msg.command = name;
         msg.args = args || '';

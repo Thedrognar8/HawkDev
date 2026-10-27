@@ -6,7 +6,8 @@
     "start": "node bot.js",
     "test": "node --test security.test.js",
     "integration": "node --experimental-vm-modules integration-smoke.mjs",
-    "benchmark": "node performance-bench.mjs"
+    "benchmark": "node performance-bench.mjs",
+    "docs": "node scripts/generate-catalog.mjs"
   },
   "engines": {
     "node": ">=18"

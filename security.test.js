@@ -30,8 +30,8 @@ test('owner authorization uses platform metadata and fails closed',()=>{
  for(const s of [{},{owner_id:''},{owner_id:{}},{id:'server-id'}])assert.throws(()=>ownerFromServer(s));
 });
 test('atomic persistence writes and replaces the correct server files',async()=>{
- const dir=await mkdtemp(new URL('./hawk-test-',import.meta.url));const url=pathToFileURL(dir+'/');
- try{await atomicSave(url,'one','first');await atomicSave(url,'two','other');await atomicSave(url,'one','updated');assert.equal(await readFile(new URL('one.json',url),'utf8'),'updated');assert.equal(await readFile(new URL('two.json',url),'utf8'),'other');}finally{const boundary=resolve(dirname(fileURLToPath(import.meta.url)))+sep;const actual=resolve(dir);if(!actual.toLowerCase().startsWith(boundary.toLowerCase())||!basename(actual).startsWith('hawk-test-'))throw Error('Refusing cleanup outside test directory');await rm(actual,{recursive:true,force:true});}
+ const dir=await mkdtemp(new URL('./vigil-test-',import.meta.url));const url=pathToFileURL(dir+'/');
+ try{await atomicSave(url,'one','first');await atomicSave(url,'two','other');await atomicSave(url,'one','updated');assert.equal(await readFile(new URL('one.json',url),'utf8'),'updated');assert.equal(await readFile(new URL('two.json',url),'utf8'),'other');}finally{const boundary=resolve(dirname(fileURLToPath(import.meta.url)))+sep;const actual=resolve(dir);if(!actual.toLowerCase().startsWith(boundary.toLowerCase())||!basename(actual).startsWith('vigil-test-'))throw Error('Refusing cleanup outside test directory');await rm(actual,{recursive:true,force:true});}
 });
 import {memberHasAdministrator} from './security.js';
 test('assigned administrator role grants access',()=>{
@@ -314,3 +314,22 @@ test('audit outbox can be committed with the case using one state save',async()=
 test('a current server owner needs one fresh owner read, not member-role round trips',async()=>{
  const calls=[];const bot={server:async()=>{calls.push('server');return {owner_id:'owner'};},member:async()=>{calls.push('member');return {roles:[]};},roles:async()=>{calls.push('roles');return [];}};const gate=new PermissionGate(bot,{serverId:'server',ownerId:'owner'});assert.equal(await withRequest(()=>gate.check('owner')),true);assert.deepEqual(calls,['server']);
 });
+
+test('avatar is removed and autowarn records once with a visible notice',async()=>{
+ const h=featureHarness(),replies=[];assert.equal(h.handlers.has('avatar'),false);
+ const m={...h.message(),content:'n1gg3r',reply:async text=>replies.push(text)};
+ await h.features.filter(m);await h.features.filter(m);
+ assert.equal(h.state.warnings.user.length,1);assert.equal(h.state.warnings.user[0].automatic,true);assert.ok(replies[0].includes('Warning:'));
+});
+test('autowarn off preserves language enforcement without warnings',async()=>{
+ const h=featureHarness();await h.handlers.get('autowarn')(h.message(['off']));await h.features.filter({...h.message(),content:'fuck'});assert.equal(h.state.warnings?.user,undefined);assert.ok(h.calls.includes('timeout'));
+});
+test('short fragments do not mute innocent chat',()=>{assert.equal(findSwear('ni nice night ninja'),null);});
+test('tickets quick setup works without role IDs and stays private',async()=>{
+ const h=ticketHarness();await h.handlers.get('ticketsetup')(h.message('admin'));await h.handlers.get('ticket')(h.message());const [t]=h.system.openFor('owner');assert.ok(t);assert.equal(h.channels.get(t.channelId).private,true);assert.deepEqual(h.channels.get(t.channelId).roleIds,[]);
+});
+test('ticket setup accepts support role name',async()=>{
+ const h=ticketHarness();await h.handlers.get('ticketsetup')(h.message('admin',['Support']));assert.equal(h.state.tickets.settings.roleId,'support');
+});
+
+test('honeypot setup is one step and repeated setup preserves the trap',async()=>{const h=honeypotHarness();await h.configure(['setup']);assert.equal(h.state.honeypot.enabled,true);assert.equal(h.state.honeypot.minutes,10);await h.configure(['setup']);assert.equal(h.calls.filter(x=>x==='warning').length,1);});

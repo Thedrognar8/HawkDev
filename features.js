@@ -1,7 +1,9 @@
+import {randomUUID} from 'node:crypto';
 import {installMore} from './more-commands.js';
 import {account,amount,reward,transfer,move,buy,sell,ITEMS,customSet,findSwear} from './features-core.js';
 export function installFeatures({state,save,command,commands,handlers,hasAdmin,bot,cfg,record}) {
  state.economy||={users:{}};state.customCommands||={};state.filter||={enabled:true,minutes:5,words:[],allowed:[],channels:[],violations:{}};
+ state.filter.autoWarn ??= true;
  let queue=Promise.resolve();
  const me=m=>account(state.economy,String(m.author_id));
  const uid=x=>String(x||'').replace(/^<@!?([\w-]+)>$/,'$1');
@@ -35,13 +37,14 @@ export function installFeatures({state,save,command,commands,handlers,hasAdmin,b
  command('filterwords','List custom words and exceptions',m=>m.reply(JSON.stringify({blocked:state.filter.words,allowed:state.filter.allowed}).slice(0,1800)));
  command('filterignore','Exempt this channel',async m=>{if(!state.filter.channels.includes(m.channel_id))state.filter.channels.push(m.channel_id);await save();await m.reply('Channel exempted.');});
  command('filterunignore','Enable filter in this channel',async m=>{state.filter.channels=state.filter.channels.filter(id=>id!==m.channel_id);await save();await m.reply('Channel filter enabled.');});
+ command('autowarn','on|off|status: automatic chat warnings',async m=>{const value=m.argv[0];if(value&&!['on','off','status'].includes(value))throw Error('Use on, off or status.');if(['on','off'].includes(value)){state.filter.autoWarn=value==='on';await save();}await m.reply('Automatic chat warnings '+(state.filter.autoWarn?'ON':'OFF')+'. Uses the existing warning threshold.');});
+ command('filtertest','TEXT: dry-run the language filter',m=>m.reply('Filter match: '+(findSwear(m.argv.join(' '),state.filter.words,state.filter.allowed)?'blocked language':'none')+'. No action taken.'));
  command('filterstats','Swear violation counts',m=>m.reply(JSON.stringify(state.filter.violations).slice(0,1800)));
  command('customadd','NAME RESPONSE: save custom command',async m=>{const name=String(m.argv[0]||'').toLowerCase();if(handlers.has(name))throw Error('That is a built-in command.');customSet(state.customCommands,name,m.argv.slice(1).join(' '));await save();await m.reply('Saved !'+name);});
  command('customdelete','NAME: remove custom command',async m=>{delete state.customCommands[m.argv[0]];await save();await m.reply('Custom command removed.');});
  pub('customlist','List custom commands: PAGE',m=>{const page=Math.max(1,Number(m.argv[0])||1),names=Object.keys(state.customCommands);return m.reply(`Custom commands ${names.length}/500\n`+(names.slice((page-1)*30,page*30).map(n=>'!'+n).join(', ')||'No commands on this page.'));});
  pub('commandcount','Count built-in and custom commands',m=>m.reply(`${commands.size} built-in commands; ${Object.keys(state.customCommands).length}/500 custom commands.`));
  pub('serverinfo','Server details',async m=>{const s=await bot.server(cfg.serverId);await m.reply('Server: '+String(s.name||cfg.serverId).replace(/@/g,'@\u200b'));});
- pub('avatar','Your profile picture',async m=>{const u=await bot.user(m.author_id);await m.reply(u.avatar_url||'No avatar available.');});
  pub('coinflip','Flip a coin',m=>m.reply(Math.random()<.5?'Heads':'Tails'));
  pub('roll','Roll a die: SIDES',m=>{const n=Number(m.argv[0]||6);if(!Number.isInteger(n)||n<2||n>1000)throw Error('Sides: 2-1000.');return m.reply(String(1+Math.floor(Math.random()*n)));});
  installMore({pub,command,commands,handlers,tx,me,state,bot,cfg,record});
@@ -52,10 +55,15 @@ export function installFeatures({state,save,command,commands,handlers,hasAdmin,b
   if(!findSwear(m.content,f.words,f.allowed))return false;
   if(await hasAdmin(m.author_id))return false;
   if(Date.now()-(filterCooldown.get(m.author_id)||0)<5000)return true;filterCooldown.set(m.author_id,Date.now());
+  // Persist a warning before punishment, once per moderation cooldown.
+  if(f.autoWarn){state.warnings||={};const rules=state.modSuite?.warnSettings||{},now=Date.now();const warnings=(state.warnings[m.author_id]||[]).filter(w=>!w.expiresAt||w.expiresAt>now);warnings.push({id:randomUUID(),actor:'Vigil',reason:'Automatic chat warning: blocked language',time:now,expiresAt:rules.expireDays?now+rules.expireDays*86400000:0,notes:[],automatic:true});state.warnings[m.author_id]=warnings;await save();}
+  const rules=state.modSuite?.warnSettings||{};
+  const minutes=rules.threshold>0&&(state.warnings?.[m.author_id]?.length||0)>=rules.threshold?Math.max(f.minutes,rules.minutes||1):f.minutes;
   // Attempt both actions even if deletion lacks permission; report individual failures.
-  const results=await Promise.allSettled([bot.delete(m.channel_id,m.id),bot.timeout(cfg.serverId,m.author_id,f.minutes,'Vigil swear filter')]);
+  const results=await Promise.allSettled([bot.delete(m.channel_id,m.id),bot.timeout(cfg.serverId,m.author_id,minutes,'Vigil chat filter')]);
   f.violations[m.author_id]=(f.violations[m.author_id]||0)+1;
   await record('swear-filter','Vigil',m.author_id,results.map((r,i)=>`${i===0?'delete':'timeout'}: ${r.status}${r.reason?': '+r.reason.message:''}`).join('; '));
+  if(f.autoWarn){try{await m.reply('Warning: blocked language. Follow the server chat rules. Warnings: '+state.warnings[m.author_id].length+'.');}catch(e){await record('warning-notice-failed','Vigil',m.author_id,e.message);}}
   return true;
  },
  async custom(m){

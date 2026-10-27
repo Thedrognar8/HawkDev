@@ -1,3 +1,5 @@
+![Vigil](assets/vigil-banner.png)
+
 # Vigil — moderation, tickets and economy for Yapin
 
 A Node.js community bot with **243 built-in command names** (including aliases), embedded responses, private support tickets, economy progression, configurable moderation, and a clearly marked honeypot.
@@ -16,7 +18,7 @@ Read [COMMANDS.md](COMMANDS.md) for the generated command catalog, [REQUEST-COVE
 
 ## Vigil operations terminal
 
-Open **START VIGIL.cmd**. The earlier START HAWK.cmd shortcut still starts the same updated bot. The terminal includes a short boot sequence, four accent themes, parallel preflight checks, command search, a read-only local ticket/log/task overview, the test suite, and an offline speed benchmark. No user IDs or tokens are printed by the overview.
+Open **START VIGIL.cmd**. The terminal includes a short boot sequence, four accent themes, parallel preflight checks, command search, a read-only local ticket/log/task overview, the test suite, and an offline speed benchmark. No user IDs or tokens are printed by the overview.
 
 Responsiveness improvements: independent permission reads run concurrently; the current owner needs only a fresh owner check; duplicate reads/alias checks are reused only within one incoming event. The next event rechecks permissions. Cases and log-outbox entries are saved together, then server log delivery runs in the background. Server discovery is bounded to three concurrent workers. Platform API latency and rate limits still apply.
 
@@ -72,3 +74,16 @@ No real members were banned, muted, kicked or assigned roles by these developmen
 `token.txt`, `.env` files, `data/`, exports, logs and local backups must stay private. They are excluded from Git. Server state includes staff notes, reports, ticket transcripts and scheduled actions. Keep external backups; no bot can make local files undeletable or stop a server owner from removing it.
 
 The bundled `yapper.js` SDK is supplied by [Yapin](https://www.yapin.gg/developers). No license for that third-party SDK is asserted here.
+
+## Profile and project cleanup
+
+The main runtime and configuration are `vigil.js` and `vigil.config.json`. The selected [avatar](assets/vigil-avatar.png) and [banner](assets/vigil-banner.png) match the purple glitch lettering; their built-in ImageGen prompts are in [assets/PROFILE.md](assets/PROFILE.md). The profile assets are applied to the bot.
+
+Obsolete starters, Python samples/SDK, one-off probes and source backups were moved out of the active project into a local `.archive/` folder. That archive is excluded from Git and is not required to run Vigil. Credentials, server data and historical audit entries are retained. `npm run docs` regenerates COMMANDS.md using the isolated bootstrap, without a live API connection.
+
+## Quick setup update
+
+- Run /ticketsetup: creates a support category with administrator-only private ticket rooms. Optional: /ticketsetup Support (role name, mention or ID). Members run /ticket and DM Vigil; staff use /ticketreply TEXT. DMs must be enabled.
+- Run /honeypot setup: creates a clearly warned decoy channel. Default: 10-minute timeout; staff and bots exempt. /honeypot status and /honeypot off manage it.
+- /autowarn on|off controls saved automatic language warnings; /filtertest TEXT previews matching. Existing /warnthreshold and /warnexpire apply. Standard filter timeouts remain enabled independently of autowarn.
+- /avatar removed. Commands addressed to other bots are ignored. Exact slurs, leetspeak and separated variants are filtered; innocent short fragments such as ni are not blocked by default.

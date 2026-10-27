@@ -13,9 +13,10 @@ export function installHoneypot({state,save,command,bot,cfg,isStaff,record,alert
   await bot.send(id,WARNING);
   await commit({channelId:id,enabled:true});
  }
- command('honeypot','create|set|on|off|status|time|action|test',async m=>{
+ command('honeypot','setup|create|set|on|off|status|time|action|test',async m=>{
   const sub=String(m.argv[0]||'status').toLowerCase();
-  if(sub==='create'){
+  if(sub==='setup'&&settings.channelId){await channel();await m.reply('Honeypot already configured. Use /honeypot status, /honeypot on or /honeypot off.');return;}
+  if(sub==='create'||sub==='setup'){
    if(settings.channelId)throw Error('A channel is already configured. Use set confirm to replace it or on/off.');
    const name=m.argv.slice(1).join('-').toLowerCase().replace(/[^a-z0-9-]/g,'').slice(0,40)||'do-not-post';
    const c=await bot.createChannel(cfg.serverId,name,{kind:'text'});await configure(String(c.id));await record('honeypot-create',m.author_id,c.id,'Warning posted; enabled with '+settings.action);await m.reply('Honeypot created and armed. Action: '+settings.action+'.');return;

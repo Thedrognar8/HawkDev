@@ -19,12 +19,12 @@ class FakeBot{
  async send(channel,content,options){this.sent.push({channel,content,options});return {id:'message'};}
  async ban(...args){this.mutations.push(['ban',...args]);}
 }
-const fakeFS={readFile:async file=>{if(String(file).endsWith('hawk.config.json'))return JSON.stringify({pollSeconds:5,autoRestore:false,spamThreshold:7,mentionThreshold:5,joinThreshold:8,joinWindowSeconds:15,servers:{}});const e=Error('missing');e.code='ENOENT';throw e;},writeFile:async()=>{},rename:async()=>{},mkdir:async()=>{},appendFile:async()=>{}};
+const fakeFS={readFile:async file=>{if(String(file).endsWith('vigil.config.json'))return JSON.stringify({pollSeconds:5,autoRestore:false,spamThreshold:7,mentionThreshold:5,joinThreshold:8,joinWindowSeconds:15,servers:{}});const e=Error('missing');e.code='ENOENT';throw e;},writeFile:async()=>{},rename:async()=>{},mkdir:async()=>{},appendFile:async()=>{}};
 async function synthetic(name,exports){if(cache.has(name))return cache.get(name);const module=new vm.SyntheticModule(Object.keys(exports),function(){for(const [key,value]of Object.entries(exports))this.setExport(key,value);},{context,identifier:name});cache.set(name,module);return module;}
 async function moduleFor(url){
  if(cache.has(url))return cache.get(url);
  const source=await readFile(new URL(url),'utf8');
- const extra=url.endsWith('/hawk.js')?'\nglobalThis.__internals={registry,prefixOnly};':'';
+ const extra=url.endsWith('/vigil.js')?'\nglobalThis.__internals={registry,prefixOnly};':'';
  const module=new vm.SourceTextModule(source+extra,{context,identifier:url,initializeImportMeta:meta=>{meta.url=url;}});cache.set(url,module);return module;
 }
 async function linker(specifier,parent){
@@ -34,7 +34,7 @@ async function linker(specifier,parent){
  if(url.endsWith('/yapper.js'))return synthetic('fake-sdk',{Bot:FakeBot});
  return moduleFor(url);
 }
-const main=await moduleFor(new URL('hawk.js',root).href);await main.link(linker);await main.evaluate();await context.__bot.ready;
+const main=await moduleFor(new URL('vigil.js',root).href);await main.link(linker);await main.evaluate();await context.__bot.ready;
 const bot=context.__bot,internals=context.__internals,protection=await internals.registry.get('offline-server');
 assert.equal(bot.commands.size,100);assert.ok(internals.prefixOnly.size>0);
 const replies=[];const msg=(content,argv=[],author='ordinary')=>({id:'test-message',server_id:'offline-server',channel_id:'general',author_id:author,content,argv,reply:(text,opts)=>{replies.push(text);return bot.send('general',text,opts);}});

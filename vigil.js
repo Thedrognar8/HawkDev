@@ -13,7 +13,7 @@ import {installModerationSuite} from './moderation-suite.js';
 import {withRequest,firstInRequest,installReadMemo,PermissionGate,mapLimit} from './performance.js';
 import { ownerFromServer, atomicSave } from './runtime.js';
 const root = new URL('./', import.meta.url);
-const config = JSON.parse(await readFile(new URL('hawk.config.json', root), 'utf8'));
+const config = JSON.parse(await readFile(new URL('vigil.config.json', root), 'utf8'));
 const bot = new Bot(process.env.YAPPER_BOT_TOKEN, { prefixes: ['!', '/'] });
 installEmbeds(bot);
 installReadMemo(bot);

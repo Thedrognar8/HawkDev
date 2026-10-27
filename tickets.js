@@ -14,13 +14,15 @@ export function installTickets({state,save,command,bot,cfg,hasAdmin,record}) {
  const admin=(n,d,fn)=>command(n,d,fn);
  const support=(n,d,fn)=>command(n,d,fn,'support');
  const pub=(n,d,fn)=>command(n,d,fn,'public');
- admin('ticketsetup','SUPPORT_ROLE_ID: enable private DM tickets',async m=>{
-  const id=String(m.argv[0]||'').replace(/^<@&([\w-]+)>$/,'$1');const role=(await bot.roles(cfg.serverId)).find(r=>String(r.id)===id);
-  if(!role||/^@?everyone$/i.test(role.name))throw Error('Choose a real support role, not @everyone.');
-  settings.roleId=id;
-  if(!settings.categoryId)settings.categoryId=String((await bot.createCategory(cfg.serverId,'Vigil Support')).id);
-  settings.enabled=true;await save();await record('ticket-setup',m.author_id,id);await m.reply('Tickets enabled. Members: !ticket. Staff: !ticketreply TEXT inside the private ticket room.');
- });
+ admin('ticketsetup','[SUPPORT_ROLE]: quick setup; default admins only',m=>serial(async()=>{
+  const input=m.argv.join(' ').trim();let roleId='';
+  if(input){const roles=await bot.roles(cfg.serverId),id=input.replace(/^<@&([\w-]+)>$/,'$1');const matches=roles.filter(r=>String(r.id)===id||String(r.name).toLowerCase()===input.toLowerCase());if(matches.length!==1||/^@?everyone$/i.test(matches[0].name))throw Error('Choose one support role by name, ID or mention. Never use @everyone.');roleId=String(matches[0].id);}
+  const categories=await bot.categories(cfg.serverId);
+  let category=categories.find(c=>String(c.id)===settings.categoryId)||categories.find(c=>c.name==='Vigil Support');
+  if(!category)category=await bot.createCategory(cfg.serverId,'Vigil Support');
+  settings.roleId=roleId;settings.categoryId=String(category.id);settings.enabled=true;await save();await record('ticket-setup',m.author_id,roleId||'administrators');
+  await m.reply('Tickets ready! Members: /ticket, then DM Vigil. Staff: /ticketreply TEXT in the private room. Access: '+(roleId?'support role + administrators':'administrators only')+'. Optional: /ticketsetup Support to add a role.');
+ }));
  admin('ticketrole','SUPPORT_ROLE_ID: change role for future tickets',async m=>{
   const id=String(m.argv[0]||'').replace(/^<@&([\w-]+)>$/,'$1'),role=(await bot.roles(cfg.serverId)).find(r=>String(r.id)===id);
   if(!role||/^@?everyone$/i.test(role.name))throw Error('Invalid support role.');settings.roleId=id;await save();await record('ticket-role',m.author_id,id);await m.reply('Support role updated for future tickets. Existing channel permissions remain unchanged.');
@@ -28,12 +30,12 @@ export function installTickets({state,save,command,bot,cfg,hasAdmin,record}) {
  admin('ticketcategory','CATEGORY_ID: category for future tickets',async m=>{
   const id=String(m.argv[0]||''),found=(await bot.categories(cfg.serverId)).some(c=>String(c.id)===id);if(!found)throw Error('Category must belong to this server.');settings.categoryId=id;await save();await record('ticket-category',m.author_id,id);await m.reply('Category saved.');
  });
- admin('tickettoggle','on|off: allow new tickets',async m=>{if(!['on','off'].includes(m.argv[0]))throw Error('Use on or off.');if(m.argv[0]==='on'&&(!settings.roleId||!settings.categoryId))throw Error('Run !ticketsetup SUPPORT_ROLE_ID first.');settings.enabled=m.argv[0]==='on';await save();await record('ticket-toggle',m.author_id,cfg.serverId,m.argv[0]);await m.reply('New tickets '+m.argv[0]+'. Existing tickets still work.');});
+ admin('tickettoggle','on|off: allow new tickets',async m=>{if(!['on','off'].includes(m.argv[0]))throw Error('Use on or off.');if(m.argv[0]==='on'&&!settings.categoryId)throw Error('Run /ticketsetup first.');settings.enabled=m.argv[0]==='on';await save();await record('ticket-toggle',m.author_id,cfg.serverId,m.argv[0]);await m.reply('New tickets '+m.argv[0]+'. Existing tickets still work.');});
  admin('ticketlimit','1-3: open tickets per member per server',async m=>{const n=Number(m.argv[0]);if(!Number.isInteger(n)||n<1||n>3)throw Error('Choose 1-3.');settings.limit=n;await save();await record('ticket-limit',m.author_id,cfg.serverId,String(n));await m.reply('Ticket limit saved.');});
  admin('ticketsettings','Show ticket configuration',m=>m.reply(JSON.stringify({...settings,open:Object.values(data.items).filter(t=>t.status==='open').length})));
  admin('ticketpanel','Post ticket instructions here',async m=>{await m.say('🎟 VIGIL SUPPORT\nNeed help? Type !ticket here, then send your details to Vigil in DMs. Only support staff/server administrators can access the staff ticket room. Do not post private information in this public channel.');});
  pub('ticket','Open a private support conversation',m=>serial(async()=>{
-  if(!settings.enabled||!settings.roleId||!settings.categoryId)throw Error('Tickets are not configured or are currently disabled.');
+  if(!settings.enabled||!settings.categoryId)throw Error('Tickets are not configured or are currently disabled.');
   if(openFor(m.author_id).length>=settings.limit)throw Error('You already reached your open-ticket limit. Continue by messaging Vigil privately.');
   // Open DM first; failure must not create an unusable support room.
   const dm=String(await bot.dm(m.author_id));
@@ -42,7 +44,7 @@ export function installTickets({state,save,command,bot,cfg,hasAdmin,record}) {
   try{
    const c=await bot.createChannel(cfg.serverId,'ticket-'+t.id.slice(2),{kind:'text',categoryId:settings.categoryId});t.channelId=String(c.id);await save();
    // No identifying or ticket content is posted before private access is verified.
-   await bot.editChannel(t.channelId,{private:true,roleIds:[settings.roleId]});await privateRoom(t);
+   await bot.editChannel(t.channelId,{private:true,roleIds:settings.roleId?[settings.roleId]:[]});await privateRoom(t);
    const server=await bot.server(cfg.serverId);
    await bot.send(dm,`Ticket ${t.id} opened for ${clean(server.name||cfg.serverId)}. Messages sent here are relayed to that server's support staff. Send text describing your issue. If several tickets are open, use !ticketmsg ${t.id} YOUR MESSAGE. Use !ticketclose in the original server to close your ticket.`);
    await bot.send(t.channelId,`🎟 ${t.id}\nMember ID: ${t.owner}\nStaff: !ticketclaim | !ticketreply TEXT | !ticketclose\nMessages from the member arrive here through Vigil DMs.`);

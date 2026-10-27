@@ -6,7 +6,7 @@ import {setTimeout as delay} from 'node:timers/promises';
 const root=new URL('./',import.meta.url),args=new Set(process.argv.slice(2));
 const terminal=Boolean(process.stdout.isTTY),interactive=Boolean(process.stdin.isTTY&&terminal);
 const input=createInterface({input:process.stdin,output:process.stdout});
-const REQUIRED=['bot.js','hawk.js','yapper.js','features.js','features-core.js','security.js','runtime.js','server-registry.js','logging.js','tickets.js','presentation.js','more-commands.js','moderation.js','honeypot.js','policy.js','scheduler.js','moderation-suite.js','performance.js'];
+const REQUIRED=['bot.js','vigil.js','yapper.js','features.js','features-core.js','security.js','runtime.js','server-registry.js','logging.js','tickets.js','presentation.js','more-commands.js','moderation.js','honeypot.js','policy.js','scheduler.js','moderation-suite.js','performance.js'];
 const THEMES=[{name:'NEBULA',accent:165,gradient:[54,90,129,165,171,213]},{name:'GLACIER',accent:51,gradient:[17,24,31,38,45,51]},{name:'SOLAR',accent:214,gradient:[130,166,172,208,214,220]},{name:'PHOSPHOR',accent:46,gradient:[22,28,34,40,46,82]}];
 let theme=0,launched=false;
 const color=(code,text)=>terminal&&!process.env.NO_COLOR?`\x1b[${code}m${text}\x1b[0m`:String(text);
@@ -35,7 +35,7 @@ async function readToken(){
 const valid=value=>/^yb_\S+$/.test(value||'');
 async function checks(){
  const files=await Promise.all(REQUIRED.map(async name=>{try{await access(new URL(name,root));return {name,ok:true};}catch{return {name,ok:false};}}));
- let config;try{const cfg=JSON.parse((await readFile(new URL('hawk.config.json',root),'utf8')).replace(/^\uFEFF/,''));if(!cfg||typeof cfg!=='object'||Array.isArray(cfg)||!Number.isFinite(cfg.pollSeconds)||cfg.pollSeconds<5)throw Error('pollSeconds must be at least 5');config={name:'Configuration parsed',ok:true};}catch(e){config={name:'Configuration: '+e.message,ok:false};}
+ let config;try{const cfg=JSON.parse((await readFile(new URL('vigil.config.json',root),'utf8')).replace(/^\uFEFF/,''));if(!cfg||typeof cfg!=='object'||Array.isArray(cfg)||!Number.isFinite(cfg.pollSeconds)||cfg.pollSeconds<5)throw Error('pollSeconds must be at least 5');config={name:'Configuration parsed',ok:true};}catch(e){config={name:'Configuration: '+e.message,ok:false};}
  return [{name:'Node.js '+process.versions.node,ok:Number(process.versions.node.split('.')[0])>=18},...files,config];
 }
 async function boot(){
@@ -114,7 +114,7 @@ async function start(){
  if(!valid(token))throw Error('Invalid token format: it must start with yb_ and have no spaces.');
  process.env.YAPPER_BOT_TOKEN=token;input.close();
  console.log(color('32','\n  ◉ HANDING CONTROL TO VIGIL'));console.log(muted('  Establishing Yapin connection… keep this window open.\n'));
- await import('./hawk.js');launched=true;
+ await import('./vigil.js');launched=true;
 }
 function menu(){panel('OPERATIONS / ENTER = LAUNCH',[
  '01  LAUNCH VIGIL          02  PREFLIGHT CHECKS',

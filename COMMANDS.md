@@ -1,6 +1,6 @@
 # Vigil command catalog
 
-Generated from the actual offline-bootstrapped handlers: **243 command names**, including aliases and shortcuts. The first 100 are composer-registered; the rest work when typed with `!`. Use `!help PAGE` inside Yapin. Public dispatch commands such as ticket still enforce permissions on their administrative subcommands. Bots cannot bypass platform permissions/role hierarchy.
+Generated from the actual offline-bootstrapped handlers: **244 command names**, including aliases and shortcuts. The first 100 are composer-registered; the rest work when typed with `!`. Public dispatch commands still enforce administrative permissions on their sensitive subcommands.
 
 | Command | Access | Usage / behavior |
 |---|---|---|
@@ -28,7 +28,7 @@ Generated from the actual offline-bootstrapped handlers: **243 command names**, 
 | `!unlock` | Administrator | Restore posting settings |
 | `!purge` | Administrator | Delete 1-100 recent messages |
 | `!raidmode` | Administrator | on\|off: temporary newcomer timeouts |
-| `!ticketsetup` | Administrator | SUPPORT_ROLE_ID: enable private DM tickets |
+| `!ticketsetup` | Administrator | [SUPPORT_ROLE]: quick setup; default admins only |
 | `!ticketrole` | Administrator | SUPPORT_ROLE_ID: change role for future tickets |
 | `!ticketcategory` | Administrator | CATEGORY_ID: category for future tickets |
 | `!tickettoggle` | Administrator | on\|off: allow new tickets |
@@ -70,13 +70,14 @@ Generated from the actual offline-bootstrapped handlers: **243 command names**, 
 | `!filterwords` | Administrator | List custom words and exceptions |
 | `!filterignore` | Administrator | Exempt this channel |
 | `!filterunignore` | Administrator | Enable filter in this channel |
+| `!autowarn` | Administrator | on\|off\|status: automatic chat warnings |
+| `!filtertest` | Administrator | TEXT: dry-run the language filter |
 | `!filterstats` | Administrator | Swear violation counts |
 | `!customadd` | Administrator | NAME RESPONSE: save custom command |
 | `!customdelete` | Administrator | NAME: remove custom command |
 | `!customlist` | Public | List custom commands: PAGE |
 | `!commandcount` | Public | Count built-in and custom commands |
 | `!serverinfo` | Public | Server details |
-| `!avatar` | Public | Your profile picture |
 | `!coinflip` | Public | Flip a coin |
 | `!roll` | Public | Roll a die: SIDES |
 | `!eco` | Public | Shortcut for !economy |
@@ -129,7 +130,7 @@ Generated from the actual offline-bootstrapped handlers: **243 command names**, 
 | `!botinfo` | Public | Installed bot features and command count |
 | `!setnickname` | Administrator | USER_ID NICKNAME: update member nickname |
 | `!clearnickname` | Administrator | USER_ID: remove member nickname |
-| `!honeypot` | Administrator | create\|set\|on\|off\|status\|time\|action\|test |
+| `!honeypot` | Administrator | setup\|create\|set\|on\|off\|status\|time\|action\|test |
 | `!antispam` | Administrator | on\|off: configure spam |
 | `!antimention` | Administrator | on\|off: configure mentions |
 | `!antieveryone` | Administrator | on\|off: configure everyone |

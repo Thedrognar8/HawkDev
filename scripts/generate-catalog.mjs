@@ -1,0 +1,9 @@
+import {writeFile} from 'node:fs/promises';
+import {execFileSync} from 'node:child_process';
+import {fileURLToPath} from 'node:url';
+const root=new URL('../',import.meta.url);
+const output=execFileSync(process.execPath,['--experimental-vm-modules',fileURLToPath(new URL('integration-smoke.mjs',root)),'--catalog'],{encoding:'utf8'});
+const line=output.split(/\r?\n/).find(s=>s.startsWith('CATALOG='));if(!line)throw Error('No verified command catalog');const catalog=JSON.parse(line.slice(8));
+const escape=s=>String(s).replace(/\|/g,'\\|').replace(/\n/g,' ');
+await writeFile(new URL('COMMANDS.md',root),'# Vigil command catalog\n\nGenerated from the actual offline-bootstrapped handlers: **'+catalog.length+' command names**, including aliases and shortcuts. The first 100 are composer-registered; the rest work when typed with `!`. Public dispatch commands still enforce administrative permissions on their sensitive subcommands.\n\n| Command | Access | Usage / behavior |\n|---|---|---|\n'+catalog.map(c=>'| `!'+c.name+'` | '+c.access+' | '+escape(c.description)+' |').join('\n')+'\n');
+console.log('Generated '+catalog.length+' command entries. No live API calls were made.');
