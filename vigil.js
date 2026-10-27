@@ -1,3 +1,4 @@
+import {installRoleButtons} from './role-buttons.js';
 import { Bot } from './yapper.js';
 import { readFile, writeFile, rename, mkdir, appendFile } from 'node:fs/promises';
 import { Counter, settings, safeTarget, memberHasAdministrator } from './security.js';
@@ -145,6 +146,7 @@ events.set('message',async m=>{if(String(m.server_id)!==String(cfg.serverId)||is
 });
 
  ticketSystem=installTickets({state,save,command,bot,cfg,hasAdmin,record});
+ const roleButtons=installRoleButtons({state,save,command,bot,cfg,record});
  const features=installFeatures({state,save,command,commands,handlers,hasAdmin,bot,cfg,record});
  honeypot=installHoneypot({state,save,command,bot,cfg,isStaff:id=>ticketSystem.isStaff(id),record,alert});
  policy=installPolicy({state,save,command,bot,cfg,hasAdmin,record});
@@ -175,7 +177,7 @@ events.set('message',async m=>{if(String(m.server_id)!==String(cfg.serverId)||is
  const previousJoin=events.get('member_join');
  events.set('member_join',async ev=>{await logger.enqueue('MEMBER JOIN | User: '+ev.user_id,'joins');await previousJoin(ev);await suite.onJoin(ev);});
  events.set('member_leave',async ev=>{await logger.enqueue('MEMBER LEAVE | User: '+ev.user_id+' | Cause/actor not supplied by SDK.','leaves');});
- return {commands,accessLevels,handlers,events,poll,tickets:ticketSystem,flush:async()=>{await ticketSystem.flush();await queue;}};
+ return {commands,accessLevels,handlers,events,poll,roleButtons,tickets:ticketSystem,flush:async()=>{await ticketSystem.flush();await queue;}};
 }
 async function receiveTicketDM(message){
  if(message.author_bot||message.command)return;
@@ -198,6 +200,7 @@ for(const event of ['message','member_join','member_leave','voice_join','voice_l
  try{const protection=await registry.get(ev.server_id);if(event==='message'){const typed=typedCommand(ev,prefixOnly,bot.me?.id);if(typed){Object.assign(ev,typed);await protection.handlers.get(typed.command)?.(ev);}}await protection.events.get(event)?.(ev);}
  catch(e){console.error('Event routing failed:',e.message);}
 }));
+bot.onButton(/^vigil-role:/,i=>withRequest(async()=>{try{const channel=await bot.channel(i.channel_id);if(!channel?.server_id)throw Error('Use this inside a server.');const protection=await registry.get(channel.server_id);await protection.roleButtons.click(i);}catch(e){await i.ephemeral('Vigil: '+String(e.message).replace(/@/g,'@\u200b').slice(0,600)).catch(()=>{});}}));
 let discovering=false;
 async function discover(){
  if(discovering)return;discovering=true;

@@ -6,6 +6,7 @@ const root=new URL('./',import.meta.url),cache=new Map();
 const context=vm.createContext({console,URL,Date,Math,Map,Set,Promise,JSON,Number,String,Boolean,Object,Array,RegExp,Error,structuredClone,setTimeout:()=>({unref(){}}),setInterval:()=>0,clearInterval:()=>{},process:{env:{YAPPER_BOT_TOKEN:'yb_offline-test'},on:()=>{},uptime:()=>1}});
 class FakeBot{
  constructor(){this.commands=new Map();this.handlers={};this.me={id:'bot'};this.sent=[];this.mutations=[];context.__bot=this;}
+ onButton(){return this;}
  on(n,f){(this.handlers[n]||=[]).push(f);return this;}
  command(n,d,f){if(!this.commands.has(n)&&this.commands.size>=100)throw Error('SDK limit exceeded');this.commands.set(n,{description:d,fn:f});return this;}
  async start(){this.ready=(async()=>{for(const fn of this.handlers.ready||[])await fn();})();return this.ready;}
