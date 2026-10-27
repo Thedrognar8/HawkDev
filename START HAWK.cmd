@@ -1,7 +1,7 @@
 @echo off
 setlocal
 cd /d "%~dp0"
-title HawkDev Protection
+title HAWK #1 BOT
 where node >nul 2>nul
 if errorlevel 1 (
   echo Node.js is missing. Install Node.js 18 or newer, then open this file again.
