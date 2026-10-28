@@ -1,3 +1,4 @@
+import {installWelcome} from './welcome.js';
 import {RaidJoinWindow} from './raid-window.js';
 import {accountAgeNote} from './account-age.js';
 import {COMMAND_CATALOG} from './command-catalog.js';
@@ -159,6 +160,7 @@ events.set('message',async m=>{if(String(m.server_id)!==String(cfg.serverId)||is
 });
 
  ticketSystem=installTickets({state,save,command,bot,cfg,hasAdmin,record});
+ const welcomer=installWelcome({state,save,command,bot,cfg,record});
  const roleButtons=installRoleButtons({state,save,command,bot,cfg,record});
  const features=installFeatures({state,save,command,commands,handlers,hasAdmin,bot,cfg,record});
  honeypot=installHoneypot({state,save,command,bot,cfg,isStaff:id=>ticketSystem.isStaff(id),record,alert});
@@ -190,7 +192,7 @@ events.set('message',async m=>{if(String(m.server_id)!==String(cfg.serverId)||is
  const previousJoin=events.get('member_join');
  events.set('member_join',async ev=>{// Skip the age log for accounts five days or older. Age lookup must not stop raid protection.
   if(state.logs.enabled&&state.logs.channelId&&state.logTypes?.joins!==false){try{const user=await bot.user(ev.user_id),note=accountAgeNote(user,ev.user_id);if(note)await logger.enqueue('NEW ACCOUNT JOIN | '+note,'joins');}catch(e){console.error('Account-age lookup failed:',e.message);}}
- await previousJoin(ev);await suite.onJoin(ev);});
+ try{await previousJoin(ev);await suite.onJoin(ev);}finally{await welcomer.join(ev);}});
  events.set('member_leave',async ev=>{await logger.enqueue('MEMBER LEAVE | User: '+ev.user_id+' | Cause/actor not supplied by SDK.','leaves');});
  return {commands,accessLevels,handlers,events,poll,roleButtons,tickets:ticketSystem,flush:async()=>{await ticketSystem.flush();await queue;}};
 }
@@ -236,7 +238,7 @@ const timer=setInterval(()=>void discover(),Math.max(5,config.pollSeconds)*1000)
 async function stop(){clearInterval(timer);for(const promise of registry.entries.values())try{await(await promise).flush();}catch{}process.exit(0);}
 process.on('SIGINT',stop);process.on('SIGTERM',stop);
 // Publish a complete menu on the FIRST /commands request. Server discovery can fail independently.
-const menuPriority=new Set(['help','reactroles','honeypot','ticketsetup','ticket','automod','filter','autowarn','setlogs','ban','kick','warn']);
+const menuPriority=new Set(['help','welcome','reactroles','honeypot','ticketsetup','ticket','automod','filter','autowarn','setlogs','ban','kick','warn']);
 for(const entry of [...COMMAND_CATALOG].sort((a,b)=>Number(menuPriority.has(b.name))-Number(menuPriority.has(a.name))))register(entry.name,entry.description);
 console.log('Vigil slash menu prepared: '+bot.commands.size+' commands before connection.');
 bot.start().catch(e=>{console.error('Startup failed',e.message);clearInterval(timer);process.exitCode=1;});

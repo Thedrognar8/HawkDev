@@ -157,6 +157,10 @@ export const COMMAND_CATALOG = [
     "description": "NAME: rename current staff room"
   },
   {
+    "name": "welcome",
+    "description": "setup [CHANNEL_ID] | message TEXT | test | on | off | status"
+  },
+  {
     "name": "reactroles",
     "description": "@ROLE [LABEL | MESSAGE]; list; remove PANEL_ID"
   },

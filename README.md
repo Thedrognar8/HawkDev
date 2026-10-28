@@ -99,3 +99,5 @@ Slash menu startup repair: commands are now registered before the SDK connects. 
 /honeypot opens a button panel for Setup, Status, Enable, Disable, Test, Timeout and Ban punishment. Every click rechecks current administrator access. The native typing autocomplete is controlled by Yapin; these controls appear after sending the command.
 
 Join-age logs: /setlogs in the staff log channel, then /joinlog on. Accounts under two days: ⛔; two days: ⚠️; three or four days: ✅; five days or older: no join-age log. Unknown timestamps are skipped, never guessed. /help now sends one compact command guide, two commands per row. /help COMMAND shows usage.
+
+Welcomer: /welcome setup selects the current channel (or provide a channel ID). /welcome message TEXT supports {user}, {id}, {server}. /welcome test posts a preview. /welcome on, off and status manage it. Configuration is administrator-only. Usernames are displayed without mass pings.

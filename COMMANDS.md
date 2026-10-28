@@ -1,6 +1,6 @@
 # Vigil command catalog
 
-Generated from the actual offline-bootstrapped handlers: **245 command names**, including aliases and shortcuts. The first 100 are composer-registered; the rest work when typed with `!`. Public dispatch commands still enforce administrative permissions on their sensitive subcommands.
+Generated from the actual offline-bootstrapped handlers: **246 command names**, including aliases and shortcuts. The first 100 are composer-registered; the rest work when typed with `!`. Public dispatch commands still enforce administrative permissions on their sensitive subcommands.
 
 | Command | Access | Usage / behavior |
 |---|---|---|
@@ -43,6 +43,7 @@ Generated from the actual offline-bootstrapped handlers: **245 command names**, 
 | `!ticketclose` | Public | Close current staff ticket or your own ticket [ID] |
 | `!tickettranscript` | Support/Admin | PAGE: saved text transcript in staff room |
 | `!ticketrename` | Support/Admin | NAME: rename current staff room |
+| `!welcome` | Administrator | setup [CHANNEL_ID] \| message TEXT \| test \| on \| off \| status |
 | `!reactroles` | Administrator | @ROLE [LABEL \| MESSAGE]; list; remove PANEL_ID |
 | `!balance` | Public | Your coin balance |
 | `!bank` | Public | Your bank balance |
