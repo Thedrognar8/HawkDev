@@ -1,3 +1,4 @@
+import {RaidJoinWindow} from './raid-window.js';
 import {accountAgeNote} from './account-age.js';
 import {COMMAND_CATALOG} from './command-catalog.js';
 import {installRoleButtons} from './role-buttons.js';
@@ -137,14 +138,24 @@ command('unlock','Restore posting settings',async m=>{const old=state.locks[m.ch
 command('purge','Delete 1-100 recent messages',async m=>{const n=num(m.argv[0],1,100),messages=await bot.messages(m.channel_id,n),r=await bot.bulkDelete(m.channel_id,messages.map(x=>x.id));await record('purge',m.author_id,m.channel_id,JSON.stringify(r));await m.reply(JSON.stringify(r));});
 command('raidmode','on|off: temporary newcomer timeouts',async m=>{if(!['on','off'].includes(m.argv[0]))throw Error('Use on or off.');raidUntil=m.argv[0]==='on'?Date.now()+3600000:0;await m.reply('Raid mode '+m.argv[0]);},true);
 const punishCooldown=new Map();
-events.set('member_join',async ev=>{if(String(ev.server_id)!==String(cfg.serverId))return;
- if(suite?.settings.antiRaid!==false&&counter.hit('joins',(suite?.settings.joinWindowSeconds??cfg.joinWindowSeconds)*1000)>=(suite?.settings.joinThreshold??cfg.joinThreshold)){if(Date.now()>=raidUntil)await alert('JOIN RAID: newcomer timeouts enabled for two minutes.');raidUntil=Date.now()+120000;}
- if(Date.now()<raidUntil&&![String(cfg.ownerId),String(bot.me?.id)].includes(String(ev.user_id)))try{if(await hasAdmin(ev.user_id))return;await bot.timeout(cfg.serverId,ev.user_id,2,'Join raid containment');await record('raid-timeout','Vigil',ev.user_id);}catch(e){await alert('Raid containment failed: '+e.message);}
+const raidJoins=new RaidJoinWindow(),contained=new Map();let joinQueue=Promise.resolve();
+events.set('member_join',ev=>{
+ const task=joinQueue.then(async()=>{
+  if(String(ev.server_id)!==String(cfg.serverId))return;
+  const id=String(ev.user_id);if([String(cfg.ownerId),String(bot.me?.id)].includes(id)||await hasAdmin(id))return;
+  const now=Date.now();for(const [user,time]of contained)if(now-time>=120000)contained.delete(user);
+  const result=raidJoins.observe(id,{now,windowMs:(suite?.settings.joinWindowSeconds??cfg.joinWindowSeconds??15)*1000,threshold:suite?.settings.joinThreshold??cfg.joinThreshold??8,enabled:suite?.settings.antiRaid!==false,active:now<raidUntil});
+  if(result.trigger){if(now>=raidUntil)await alert('JOIN RAID: recent join burst and new arrivals are being reviewed with two-minute timeouts.');raidUntil=now+120000;}
+  for(const user of result.targets){if(contained.has(user))continue;
+   try{if(await hasAdmin(user))continue;await bot.timeout(cfg.serverId,user,2,'Join raid containment');contained.set(user,Date.now());await record('raid-timeout','Vigil',user,'Unique join surge; review timeout, not a ban');}
+   catch(e){await alert('Raid containment failed for '+user+': '+e.message);}
+  }
+ });joinQueue=task.catch(e=>console.error('Join protection:',e.message));return task;
 });
 events.set('message',async m=>{if(String(m.server_id)!==String(cfg.serverId)||isOwner(m)||m.author_bot)return;
  const text=String(m.content||''),flood=policy.settings.flags.spam&&counter.hit('spam:'+m.author_id,8000)>=cfg.spamThreshold,mentions=(policy.settings.flags.mentions&&(text.match(/<@/g)||[]).length>=cfg.mentionThreshold)||(policy.settings.flags.everyone&&/@everyone|@here/i.test(text));
  if(!flood&&!mentions)return;if(Date.now()-(punishCooldown.get(m.author_id)||0)<30000)return;punishCooldown.set(m.author_id,Date.now());
- try{if(await hasAdmin(m.author_id))return;await bot.delete(m.channel_id,m.id);await bot.timeout(cfg.serverId,m.author_id,5,'Flood or mass mentions');await record('automod-timeout','Vigil',m.author_id);}catch(e){await alert('Automod failed: '+e.message);}
+ try{if(await hasAdmin(m.author_id))return;const results=await Promise.allSettled([bot.delete(m.channel_id,m.id),bot.timeout(cfg.serverId,m.author_id,5,'Flood or mass mentions')]);await record('automod-timeout','Vigil',m.author_id,results.map((r,i)=>(i?'timeout':'delete')+': '+r.status+(r.reason?' '+r.reason.message:'')).join('; '));}catch(e){await alert('Automod failed: '+e.message);}
 });
 
  ticketSystem=installTickets({state,save,command,bot,cfg,hasAdmin,record});
@@ -225,7 +236,7 @@ const timer=setInterval(()=>void discover(),Math.max(5,config.pollSeconds)*1000)
 async function stop(){clearInterval(timer);for(const promise of registry.entries.values())try{await(await promise).flush();}catch{}process.exit(0);}
 process.on('SIGINT',stop);process.on('SIGTERM',stop);
 // Publish a complete menu on the FIRST /commands request. Server discovery can fail independently.
-const menuPriority=new Set(['help','rolebutton','honeypot','ticketsetup','ticket','automod','filter','autowarn','setlogs','ban','kick','warn']);
+const menuPriority=new Set(['help','reactroles','honeypot','ticketsetup','ticket','automod','filter','autowarn','setlogs','ban','kick','warn']);
 for(const entry of [...COMMAND_CATALOG].sort((a,b)=>Number(menuPriority.has(b.name))-Number(menuPriority.has(a.name))))register(entry.name,entry.description);
 console.log('Vigil slash menu prepared: '+bot.commands.size+' commands before connection.');
 bot.start().catch(e=>{console.error('Startup failed',e.message);clearInterval(timer);process.exitCode=1;});

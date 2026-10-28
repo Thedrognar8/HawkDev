@@ -92,9 +92,9 @@ Vigil v2.3: /help automatically sends the complete command guide with descriptio
 
 If /honeypot setup reports missing Manage Channels, grant that permission to Vigil or create a dedicated decoy channel manually and use /honeypot setup channel CHANNEL_ID. Existing-channel setup still verifies the server and posts the warning before arming. It never silently converts your current chat into a trap. Timeout enforcement still needs moderation permission.
 
-Role buttons: /rolebutton ROLE_ID Announcements Ping | Click to toggle announcement notifications. Posts an embed with a toggle button. /rolebutton list shows panel IDs; /rolebutton remove PANEL_ID disables one. Setup requires Administrator; clicking is public. Elevated roles are rejected both at setup and on each click. Vigil needs Manage Roles and sufficient role hierarchy.
+Role buttons: /reactroles ROLE_ID Announcements Ping | Click to toggle announcement notifications. Posts an embed with a toggle button. /reactroles list shows panel IDs; /reactroles remove PANEL_ID disables one. Setup requires Administrator; clicking is public. Elevated roles are rejected both at setup and on each click. Vigil needs Manage Roles and sufficient role hierarchy.
 
-Slash menu startup repair: commands are now registered before the SDK connects. The first /commands upload contains 100 menu commands even before server discovery. Help, rolebutton and honeypot are prioritized. Startup prints: Vigil slash menu prepared: 100 commands before connection.
+Slash menu startup repair: commands are now registered before the SDK connects. The first /commands upload contains 100 menu commands even before server discovery. Help, reactroles and honeypot are prioritized. Startup prints: Vigil slash menu prepared: 100 commands before connection.
 
 /honeypot opens a button panel for Setup, Status, Enable, Disable, Test, Timeout and Ban punishment. Every click rechecks current administrator access. The native typing autocomplete is controlled by Yapin; these controls appear after sending the command.
 

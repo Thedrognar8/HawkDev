@@ -157,8 +157,8 @@ export const COMMAND_CATALOG = [
     "description": "NAME: rename current staff room"
   },
   {
-    "name": "rolebutton",
-    "description": "ROLE_ID LABEL | MESSAGE; list; remove PANEL_ID"
+    "name": "reactroles",
+    "description": "@ROLE [LABEL | MESSAGE]; list; remove PANEL_ID"
   },
   {
     "name": "balance",

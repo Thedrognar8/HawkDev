@@ -43,7 +43,7 @@ Generated from the actual offline-bootstrapped handlers: **245 command names**, 
 | `!ticketclose` | Public | Close current staff ticket or your own ticket [ID] |
 | `!tickettranscript` | Support/Admin | PAGE: saved text transcript in staff room |
 | `!ticketrename` | Support/Admin | NAME: rename current staff room |
-| `!rolebutton` | Administrator | ROLE_ID LABEL \| MESSAGE; list; remove PANEL_ID |
+| `!reactroles` | Administrator | @ROLE [LABEL \| MESSAGE]; list; remove PANEL_ID |
 | `!balance` | Public | Your coin balance |
 | `!bank` | Public | Your bank balance |
 | `!daily` | Public | Claim 1,000 coins every 24 hours |

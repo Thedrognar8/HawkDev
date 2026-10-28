@@ -21,7 +21,7 @@ export function typedCommand(message,prefixOnly,botId){
  const args=(match[2]||'').trim();return {command:match[1].toLowerCase(),args,argv:args?args.split(/\s+/):[]};
 }
 export function registerLimited(bot,name,description,handler,prefixOnly){
- const priority=new Set(['help','rolebutton','honeypot','ticketsetup','ticket','automod','filter','autowarn','setlogs','ban','kick','warn']);
+ const priority=new Set(['help','reactroles','honeypot','ticketsetup','ticket','automod','filter','autowarn','setlogs','ban','kick','warn']);
  if(bot.commands.size>=100&&!bot.commands.has(name)){
   if(priority.has(name)){const victim=[...bot.commands.keys()].reverse().find(n=>!priority.has(n));if(victim){bot.commands.delete(victim);prefixOnly.add(victim);}else{prefixOnly.add(name);return false;}}
   else{prefixOnly.add(name);return false;}

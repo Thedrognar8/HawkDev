@@ -9,7 +9,7 @@ class FakeBot{
  onButton(match,fn){this.buttonHandlers||=[];this.buttonHandlers.push({match,fn});return this;}
  on(n,f){(this.handlers[n]||=[]).push(f);return this;}
  command(n,d,f){if(!this.commands.has(n)&&this.commands.size>=100)throw Error('SDK limit exceeded');this.commands.set(n,{description:d,fn:f});return this;}
- async start(){assert.equal(this.commands.size,100,'first connection would publish an empty slash menu');for(const name of ['help','rolebutton','honeypot'])assert.ok(this.commands.has(name));this.ready=(async()=>{for(const fn of this.handlers.ready||[])await fn();})();return this.ready;}
+ async start(){assert.equal(this.commands.size,100,'first connection would publish an empty slash menu');for(const name of ['help','reactroles','honeypot'])assert.ok(this.commands.has(name));this.ready=(async()=>{for(const fn of this.handlers.ready||[])await fn();})();return this.ready;}
  async servers(){return [{id:'offline-server'}];}
  async server(){return {id:'offline-server',name:'Offline Test',owner_id:'owner'};}
  async roles(){return [{id:'member-role',name:'Member',perms:{send_messages:true}}];}
@@ -37,7 +37,7 @@ async function linker(specifier,parent){
 }
 const main=await moduleFor(new URL('vigil.js',root).href);await main.link(linker);await main.evaluate();await context.__bot.ready;
 const bot=context.__bot,internals=context.__internals,protection=await internals.registry.get('offline-server');
-assert.equal(bot.commands.size,100);for(const name of ['rolebutton','honeypot','ticketsetup'])assert.ok(bot.commands.has(name),name+' missing from slash menu');assert.ok(internals.prefixOnly.size>0);
+assert.equal(bot.commands.size,100);for(const name of ['reactroles','honeypot','ticketsetup'])assert.ok(bot.commands.has(name),name+' missing from slash menu');assert.ok(internals.prefixOnly.size>0);
 const replies=[];const msg=(content,argv=[],author='ordinary')=>({id:'test-message',server_id:'offline-server',channel_id:'general',author_id:author,content,argv,reply:(text,opts)=>{replies.push(text);return bot.send('general',text,opts);}});
 await protection.handlers.get('bal')(msg('!bal'));
 assert.ok(replies.some(r=>r.startsWith('Wallet:')),'non-admin balance command failed');
