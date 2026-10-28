@@ -103,3 +103,5 @@ Join-age logs: /setlogs in the staff log channel, then /joinlog on. Accounts und
 Welcomer: /welcome setup selects the current channel; run it inside your intended welcome channel without an ID. /welcome message TEXT supports {user}, {id}, {server}. /welcome test posts a preview. /welcome on, off and status manage it. Configuration is administrator-only. Usernames are displayed without mass pings.
 
 Welcomer status and setup now display #channel names. Run message, test, on and off inside the selected welcome channel; status can be checked anywhere.
+
+Welcome messages now mention the joining member in the message content to trigger a notification. {user} displays the member mention in the embed. Other template pings are neutralized. /welcome test previews the mention using the administrator who runs it.

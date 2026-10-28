@@ -1,9 +1,10 @@
 const clean=value=>String(value||'').replace(/@/g,'@\u200b').replace(/\u0000/g,'');
-export function renderWelcome(template,user,server){return String(template).replace(/\{(user|id|server)\}/g,(_,key)=>clean({user:user.username||user.display_name||'New member',id:user.id,server:server.name||'our community'}[key])).slice(0,1800);}
+export function welcomeMention(id){if(!/^[\w-]{1,100}$/.test(String(id)))throw Error('Invalid welcome member ID.');return '<@'+id+'>'; }
+export function renderWelcome(template,user,server){return clean(template).replace(/\{(user|id|server)\}/g,(_,key)=>key==='user'?welcomeMention(user.id):clean({id:user.id,server:server.name||'our community'}[key])).slice(0,1800);}
 export function installWelcome({state,save,command,bot,cfg,record}){
  state.welcome||={enabled:false,channelId:'',message:'Welcome {user} to {server}! Read the rules and enjoy your stay.'};const settings=state.welcome,recent=new Map();
  async function destination(id){const c=await bot.channel(id);if(String(c?.server_id)!==String(cfg.serverId)||(c.kind??c.type)!=='text')throw Error('Choose a text channel in this server.');return c;}
- async function send(id){await destination(settings.channelId);const [user,server]=await Promise.all([bot.user(id),bot.server(cfg.serverId)]);await bot.send(settings.channelId,'',{embeds:[{title:'Welcome to the community',description:renderWelcome(settings.message,{...user,id},server),color:0xa855f7}]});}
+ async function send(id){await destination(settings.channelId);const [user,server]=await Promise.all([bot.user(id),bot.server(cfg.serverId)]);await bot.send(settings.channelId,welcomeMention(id),{embeds:[{title:'Welcome to the community',description:renderWelcome(settings.message,{...user,id},server),color:0xa855f7}]});}
  command('welcome','setup (in welcome channel) | message TEXT | test | on | off | status',async m=>{
   const sub=m.argv[0]||'status';
   async function channelName(){if(!settings.channelId)return 'not set';try{const c=await destination(settings.channelId);return '#'+clean(c.name||'welcome');}catch{return 'unavailable channel';}}
