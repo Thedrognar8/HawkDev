@@ -158,7 +158,7 @@ export const COMMAND_CATALOG = [
   },
   {
     "name": "welcome",
-    "description": "setup [CHANNEL_ID] | message TEXT | test | on | off | status"
+    "description": "setup (in welcome channel) | message TEXT | test | on | off | status"
   },
   {
     "name": "reactroles",

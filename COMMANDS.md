@@ -43,7 +43,7 @@ Generated from the actual offline-bootstrapped handlers: **246 command names**, 
 | `!ticketclose` | Public | Close current staff ticket or your own ticket [ID] |
 | `!tickettranscript` | Support/Admin | PAGE: saved text transcript in staff room |
 | `!ticketrename` | Support/Admin | NAME: rename current staff room |
-| `!welcome` | Administrator | setup [CHANNEL_ID] \| message TEXT \| test \| on \| off \| status |
+| `!welcome` | Administrator | setup (in welcome channel) \| message TEXT \| test \| on \| off \| status |
 | `!reactroles` | Administrator | @ROLE [LABEL \| MESSAGE]; list; remove PANEL_ID |
 | `!balance` | Public | Your coin balance |
 | `!bank` | Public | Your bank balance |

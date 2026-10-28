@@ -100,4 +100,6 @@ Slash menu startup repair: commands are now registered before the SDK connects. 
 
 Join-age logs: /setlogs in the staff log channel, then /joinlog on. Accounts under two days: ⛔; two days: ⚠️; three or four days: ✅; five days or older: no join-age log. Unknown timestamps are skipped, never guessed. /help now sends one compact command guide, two commands per row. /help COMMAND shows usage.
 
-Welcomer: /welcome setup selects the current channel (or provide a channel ID). /welcome message TEXT supports {user}, {id}, {server}. /welcome test posts a preview. /welcome on, off and status manage it. Configuration is administrator-only. Usernames are displayed without mass pings.
+Welcomer: /welcome setup selects the current channel; run it inside your intended welcome channel without an ID. /welcome message TEXT supports {user}, {id}, {server}. /welcome test posts a preview. /welcome on, off and status manage it. Configuration is administrator-only. Usernames are displayed without mass pings.
+
+Welcomer status and setup now display #channel names. Run message, test, on and off inside the selected welcome channel; status can be checked anywhere.
