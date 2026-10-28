@@ -1,3 +1,4 @@
+import {MENU_PRIORITY} from './presentation.js';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {Counter,safeTarget,settings} from './security.js';
@@ -349,11 +350,11 @@ import {Bot as ActualSDKBot} from './yapper.js';
 import {COMMAND_CATALOG} from './command-catalog.js';
 test('actual SDK first startup publishes the menu without server discovery',async()=>{
  const bot=new ActualSDKBot('yb_offline-test',{gateway:false,log:false}),prefix=new Set(),requests=[];
- const priority=new Set(['help','reactroles','honeypot','ticketsetup','ticket','automod','filter','autowarn','setlogs','ban','kick','warn']);
+ const priority=MENU_PRIORITY;
  for(const entry of [...COMMAND_CATALOG].sort((a,b)=>Number(priority.has(b.name))-Number(priority.has(a.name))))registerLimited(bot,entry.name,entry.description,async()=>{},prefix);
  bot.api=async(method,path,body)=>{requests.push({method,path,body});if(path==='/me')return {id:'bot',username:'offline'};if(path==='/commands')return {};if(path.startsWith('/events'))return {events:[],last:0};throw Error('Unexpected API '+path);};
  bot.on('ready',()=>bot.stop());await bot.start();const sent=requests.find(r=>r.method==='PUT'&&r.path==='/commands').body.commands;
- assert.equal(sent.length,100);for(const name of ['help','reactroles','honeypot'])assert.ok(sent.some(c=>c.name===name));
+ assert.equal(sent.length,100);for(const name of ['help','welcome','reactroles','honeypot','logs','setlogs','logtest','logson','logsoff','joinlog','leavelog'])assert.ok(sent.some(c=>c.name===name),name+' missing from first slash-menu upload');
 });
 
 import {honeypotControls,HONEYPOT_ACTIONS} from './honeypot.js';

@@ -105,3 +105,5 @@ Welcomer: /welcome setup selects the current channel; run it inside your intende
 Welcomer status and setup now display #channel names. Run message, test, on and off inside the selected welcome channel; status can be checked anywhere.
 
 Welcome messages now mention the joining member in the message content to trigger a notification. {user} displays the member mention in the embed. Other template pings are neutralized. /welcome test previews the mention using the administrator who runs it.
+
+Logging commands /logs, /setlogs, /logtest, /logson, /logsoff, /joinlog and /leavelog now have reserved slash-menu slots. A single shared priority list controls initial upload and later registration. Use /logs setup in your staff channel to select it.

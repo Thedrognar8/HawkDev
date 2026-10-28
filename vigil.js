@@ -10,7 +10,7 @@ import { ServerRegistry } from './server-registry.js';
 import { installFeatures } from './features.js';
 import { LogService } from './logging.js';
 import { installTickets } from './tickets.js';
-import {installEmbeds,typedCommand,registerLimited} from './presentation.js';
+import {installEmbeds,typedCommand,registerLimited,MENU_PRIORITY} from './presentation.js';
 import {banWithNotice} from './moderation.js';
 import {installHoneypot,HONEYPOT_ACTIONS} from './honeypot.js';
 import {installPolicy} from './policy.js';
@@ -238,7 +238,7 @@ const timer=setInterval(()=>void discover(),Math.max(5,config.pollSeconds)*1000)
 async function stop(){clearInterval(timer);for(const promise of registry.entries.values())try{await(await promise).flush();}catch{}process.exit(0);}
 process.on('SIGINT',stop);process.on('SIGTERM',stop);
 // Publish a complete menu on the FIRST /commands request. Server discovery can fail independently.
-const menuPriority=new Set(['help','welcome','reactroles','honeypot','ticketsetup','ticket','automod','filter','autowarn','setlogs','ban','kick','warn']);
+const menuPriority=MENU_PRIORITY;
 for(const entry of [...COMMAND_CATALOG].sort((a,b)=>Number(menuPriority.has(b.name))-Number(menuPriority.has(a.name))))register(entry.name,entry.description);
 console.log('Vigil slash menu prepared: '+bot.commands.size+' commands before connection.');
 bot.start().catch(e=>{console.error('Startup failed',e.message);clearInterval(timer);process.exitCode=1;});

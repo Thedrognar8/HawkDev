@@ -1,3 +1,5 @@
+// Shared menu priorities: setup and logging must stay visible under the 100-command cap.
+export const MENU_PRIORITY = new Set(["help","welcome","reactroles","honeypot","ticketsetup","ticket","automod","filter","autowarn","setlogs","logs","logtest","logson","logsoff","joinlog","leavelog","ban","kick","warn"]);
 import {VERSION} from './version.js';
 export function responseEmbed(text){
  const value=String(text??'').replace(/@/g,'@\u200b');
@@ -21,7 +23,7 @@ export function typedCommand(message,prefixOnly,botId){
  const args=(match[2]||'').trim();return {command:match[1].toLowerCase(),args,argv:args?args.split(/\s+/):[]};
 }
 export function registerLimited(bot,name,description,handler,prefixOnly){
- const priority=new Set(['help','welcome','reactroles','honeypot','ticketsetup','ticket','automod','filter','autowarn','setlogs','ban','kick','warn']);
+ const priority=MENU_PRIORITY;
  if(bot.commands.size>=100&&!bot.commands.has(name)){
   if(priority.has(name)){const victim=[...bot.commands.keys()].reverse().find(n=>!priority.has(n));if(victim){bot.commands.delete(victim);prefixOnly.add(victim);}else{prefixOnly.add(name);return false;}}
   else{prefixOnly.add(name);return false;}
