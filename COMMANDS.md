@@ -4,7 +4,7 @@ Generated from the actual offline-bootstrapped handlers: **245 command names**, 
 
 | Command | Access | Usage / behavior |
 |---|---|---|
-| `!help` | Public | All commands, descriptions and running version |
+| `!help` | Public | All commands side by side; help COMMAND for details |
 | `!ping` | Administrator | Check connection |
 | `!status` | Administrator | Protection status |
 | `!backup` | Administrator | Replace baseline: confirm |

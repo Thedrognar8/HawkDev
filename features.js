@@ -10,13 +10,13 @@ export function installFeatures({state,save,command,commands,handlers,hasAdmin,b
  const uid=x=>String(x||'').replace(/^<@!?([\w-]+)>$/,'$1');
  function tx(fn){const next=queue.then(async()=>{const snapshot=structuredClone(state.economy);try{const result=fn();await save();return result;}catch(e){state.economy=snapshot;throw e;}});queue=next.catch(()=>{});return next;}
  const pub=(n,d,fn)=>command(n,d,fn,'public');
- pub('help','All commands, descriptions and running version',async m=>{
-  const lines=[...commands].map(([name,description])=>'/'+name+' — '+description);
-  const custom=Object.entries(state.customCommands);if(custom.length)lines.push('', 'CUSTOM COMMANDS',...custom.map(([name])=>'/'+name+' — Server custom response'));
-  const header='VIGIL v'+VERSION+' — COMPLETE COMMAND GUIDE\n'+commands.size+' built-in command names (including aliases).\nPublic economy/help: everyone. Moderation/config: Administrator. Ticket staff: support role or Administrator. Both / and ! prefixes work.\n\n';
-  // Deliver every entry automatically; do not silently truncate at the embed limit.
-  const chunks=[];let text=header;for(const line of lines){if(text.length+line.length+1>3400){chunks.push(text);text='';}text+=line+'\n';}if(text)chunks.push(text);
-  for(let i=0;i<chunks.length;i++)await m.reply((i?'VIGIL v'+VERSION+' — continued ('+(i+1)+'/'+chunks.length+')\n\n':'')+chunks[i]);
+ pub('help','All commands side by side; help COMMAND for details',async m=>{
+  if(m.argv[0]){const name=String(m.argv[0]).replace(/^[!/]/,'').toLowerCase();const description=commands.get(name);if(!description)throw Error('Unknown command. Run /help for the list.');await m.reply('VIGIL v'+VERSION+'\n/'+name+' — '+description);return;}
+  const names=[...commands.keys()],rows=[];for(let i=0;i<names.length;i+=2)rows.push('/'+names[i]+(names[i+1]?'    /'+names[i+1]:''));
+  const text='VIGIL v'+VERSION+' — '+names.length+' COMMANDS\nUse /help COMMAND for instructions. Admin permissions still apply.\n\n'+rows.join('\n')+'\n\nCustom commands: '+Object.keys(state.customCommands).length+' — /customlist';
+  // A single reply; multiple embed sections only if the guide exceeds one description.
+  const chunks=[];let part='';for(const line of text.split('\n')){if(part.length+line.length+1>3800){chunks.push(part);part='';}part+=line+'\n';}if(part)chunks.push(part);
+  await m.reply('',{embeds:chunks.map((description,i)=>({title:i?'Vigil commands (continued)':'Vigil v'+VERSION+' — Command guide',description,color:0xa855f7}))});
  });
  pub('balance','Your coin balance',m=>m.reply('Wallet: '+me(m).wallet+' coins | Bank: '+me(m).bank));
  pub('bank','Your bank balance',m=>m.reply('Bank: '+me(m).bank+' coins'));

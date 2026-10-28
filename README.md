@@ -97,3 +97,5 @@ Role buttons: /rolebutton ROLE_ID Announcements Ping | Click to toggle announcem
 Slash menu startup repair: commands are now registered before the SDK connects. The first /commands upload contains 100 menu commands even before server discovery. Help, rolebutton and honeypot are prioritized. Startup prints: Vigil slash menu prepared: 100 commands before connection.
 
 /honeypot opens a button panel for Setup, Status, Enable, Disable, Test, Timeout and Ban punishment. Every click rechecks current administrator access. The native typing autocomplete is controlled by Yapin; these controls appear after sending the command.
+
+Join-age logs: /setlogs in the staff log channel, then /joinlog on. Accounts under two days: ⛔; two days: ⚠️; three or four days: ✅; five days or older: no join-age log. Unknown timestamps are skipped, never guessed. /help now sends one compact command guide, two commands per row. /help COMMAND shows usage.

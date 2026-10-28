@@ -1,3 +1,4 @@
+import {accountAgeNote} from './account-age.js';
 import {COMMAND_CATALOG} from './command-catalog.js';
 import {installRoleButtons} from './role-buttons.js';
 import { Bot } from './yapper.js';
@@ -176,7 +177,9 @@ events.set('message',async m=>{if(String(m.server_id)!==String(cfg.serverId)||is
  events.set('reaction_add',ev=>suite.onReaction(ev,false));events.set('reaction_remove',ev=>suite.onReaction(ev,true));
  for(const event of ['voice_join','voice_leave'])events.set(event,ev=>logger.enqueue(event.toUpperCase()+' | User: '+ev.user_id+' | Channel: '+ev.channel_id,'voice'));
  const previousJoin=events.get('member_join');
- events.set('member_join',async ev=>{await logger.enqueue('MEMBER JOIN | User: '+ev.user_id,'joins');await previousJoin(ev);await suite.onJoin(ev);});
+ events.set('member_join',async ev=>{// Skip the age log for accounts five days or older. Age lookup must not stop raid protection.
+  if(state.logs.enabled&&state.logs.channelId&&state.logTypes?.joins!==false){try{const user=await bot.user(ev.user_id),note=accountAgeNote(user,ev.user_id);if(note)await logger.enqueue('NEW ACCOUNT JOIN | '+note,'joins');}catch(e){console.error('Account-age lookup failed:',e.message);}}
+ await previousJoin(ev);await suite.onJoin(ev);});
  events.set('member_leave',async ev=>{await logger.enqueue('MEMBER LEAVE | User: '+ev.user_id+' | Cause/actor not supplied by SDK.','leaves');});
  return {commands,accessLevels,handlers,events,poll,roleButtons,tickets:ticketSystem,flush:async()=>{await ticketSystem.flush();await queue;}};
 }

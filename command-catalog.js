@@ -2,7 +2,7 @@
 export const COMMAND_CATALOG = [
   {
     "name": "help",
-    "description": "All commands, descriptions and running version"
+    "description": "All commands side by side; help COMMAND for details"
   },
   {
     "name": "ping",
