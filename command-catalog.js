@@ -165,6 +165,10 @@ export const COMMAND_CATALOG = [
     "description": "@ROLE [LABEL | MESSAGE]; list; remove PANEL_ID"
   },
   {
+    "name": "commands",
+    "description": "[SEARCH]: find commands or show the complete guide"
+  },
+  {
     "name": "balance",
     "description": "Your coin balance"
   },

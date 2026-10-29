@@ -18,6 +18,11 @@ export function installFeatures({state,save,command,commands,handlers,hasAdmin,b
   const chunks=[];let part='';for(const line of text.split('\n')){if(part.length+line.length+1>3800){chunks.push(part);part='';}part+=line+'\n';}if(part)chunks.push(part);
   await m.reply('',{embeds:chunks.map((description,i)=>({title:i?'Vigil commands (continued)':'Vigil v'+VERSION+' — Command guide',description,color:0xa855f7}))});
  });
+ pub('commands','[SEARCH]: find commands or show the complete guide',async m=>{
+  const query=m.argv.join(' ').toLowerCase().replace(/^\//,'');if(!query)return handlers.get('help')({...m,argv:[]});
+  const matches=[...commands].filter(([name,description])=>(name+' '+description).toLowerCase().includes(query));
+  await m.reply('Command search: '+matches.length+' matches\n'+matches.slice(0,20).map(([name,description])=>'/'+name+' — '+description).join('\n')+(matches.length>20?'\nShowing 20 matches. Narrow your search or use /help.':'')+'\nAll built-ins accept / even when absent from the menu.');
+ });
  pub('balance','Your coin balance',m=>m.reply('Wallet: '+me(m).wallet+' coins | Bank: '+me(m).bank));
  pub('bank','Your bank balance',m=>m.reply('Bank: '+me(m).bank+' coins'));
  pub('daily','Claim 1,000 coins every 24 hours',async m=>m.reply('Claimed '+await tx(()=>reward(me(m),'daily',86400000,1000))+' coins.'));

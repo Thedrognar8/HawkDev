@@ -10,6 +10,7 @@ export function responseEmbed(text){
 export function installEmbeds(bot){
  const send=bot.send.bind(bot);
  bot.send=(channel,text='',options={})=>{
+  if(options.plainLog){const {plainLog,...rest}=options;return send(channel,String(text??'').replace(/@/g,'@\u200b'),rest);}
   if(options.embeds?.length)return send(channel,text,options);
   return send(channel,'',{...options,embeds:[responseEmbed(text)]});
  };

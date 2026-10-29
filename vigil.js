@@ -196,12 +196,12 @@ events.set('message',async m=>{if(String(m.server_id)!==String(cfg.serverId)||is
  for(const event of ['voice_join','voice_leave'])events.set(event,ev=>logger.enqueue(event.toUpperCase()+' | User: '+ev.user_id+' | Channel: '+ev.channel_id,'voice'));
  const previousJoin=events.get('member_join');
  events.set('member_join',async ev=>{// Skip the age log for accounts five days or older. Age lookup must not stop raid protection.
-  if(state.logs.enabled&&state.logs.channelId&&state.logTypes?.joins!==false){try{const user=await bot.user(ev.user_id),note=accountAgeNote(user,ev.user_id);await logger.enqueue('MEMBER JOIN | '+String(user.username||user.display_name||'Member').replace(/@/g,'@\u200b')+' | '+ev.user_id+(note?'\n'+note:''),'joins');}catch(e){console.error('Account-age lookup failed:',e.message);}}
+  if(state.logs.enabled&&state.logs.channelId&&state.logTypes?.joins!==false){try{const user=await bot.user(ev.user_id),note=accountAgeNote(user,ev.user_id);await logger.enqueue('📥 '+String(user.username||user.display_name||'Member').replace(/@/g,'@\u200b')+' joined'+(note?' · '+note.split(' | ').slice(2).join(' | '):''),'joins');}catch(e){console.error('Account-age lookup failed:',e.message);}}
  try{await previousJoin(ev);await suite.onJoin(ev);}finally{await welcomer.join(ev);}});
  events.set('message_delete',ev=>messageLogs.deleted(ev));
  events.set('message_edit',ev=>messageLogs.edited(ev));
  events.set('message_update',ev=>messageLogs.edited(ev));
- events.set('member_leave',async ev=>{await logger.enqueue('MEMBER LEAVE | User: '+ev.user_id+' | Cause/actor not supplied by SDK.','leaves');});
+ events.set('member_leave',async ev=>{let username=ev.username||ev.user_id;try{const u=await bot.user(ev.user_id);username=u.username||u.display_name||username;}catch{}await logger.enqueue('📤 '+String(username).replace(/@/g,'@\u200b')+' left','leaves');});
  return {commands,accessLevels,handlers,events,poll,roleButtons,tickets:ticketSystem,flush:async()=>{await ticketSystem.flush();await queue;}};
 }
 async function receiveTicketDM(message){

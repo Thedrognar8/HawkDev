@@ -25,7 +25,7 @@ export class LogService{
    if(!channel||String(channel.server_id)!==this.serverId)throw Error('Log channel missing or inaccessible. Use !setlogs in another staff channel.');
    // Drain a bounded batch. API rate limits are handled by the SDK.
    for(let n=0;n<5&&log.pending.length;n++){
-    const event=log.pending[0];await this.bot.send(log.channelId,`[VIGIL LOG] ${event.time}\n${event.text}`);
+    const event=log.pending[0];await this.bot.send(log.channelId,event.text,{plainLog:true});
     log.pending.shift();log.lastSent=new Date().toISOString();log.lastError='';await this.save();
    }
   }catch(e){log.lastError=String(e.message).slice(0,500);await this.save();console.error('LOG DELIVERY:',e.message);}

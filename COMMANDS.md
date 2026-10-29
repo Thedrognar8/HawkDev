@@ -1,6 +1,6 @@
 # Vigil command catalog
 
-Generated from the actual offline-bootstrapped handlers: **246 command names**, including aliases and shortcuts. The first 100 are composer-registered; the rest work when typed with `!`. Public dispatch commands still enforce administrative permissions on their sensitive subcommands.
+Generated from the actual offline-bootstrapped handlers: **247 command names**, including aliases and shortcuts. The first 100 are composer-registered; the rest work when typed with `!`. Public dispatch commands still enforce administrative permissions on their sensitive subcommands.
 
 | Command | Access | Usage / behavior |
 |---|---|---|
@@ -45,6 +45,7 @@ Generated from the actual offline-bootstrapped handlers: **246 command names**, 
 | `!ticketrename` | Support/Admin | NAME: rename current staff room |
 | `!welcome` | Administrator | setup (in welcome channel) \| message TEXT \| test \| on \| off \| status |
 | `!reactroles` | Administrator | @ROLE [LABEL \| MESSAGE]; list; remove PANEL_ID |
+| `!commands` | Public | [SEARCH]: find commands or show the complete guide |
 | `!balance` | Public | Your coin balance |
 | `!bank` | Public | Your bank balance |
 | `!daily` | Public | Claim 1,000 coins every 24 hours |
