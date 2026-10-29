@@ -1,3 +1,4 @@
+import {createMessageLogs} from './message-logs.js';
 import {installWelcome} from './welcome.js';
 import {RaidJoinWindow} from './raid-window.js';
 import {accountAgeNote} from './account-age.js';
@@ -58,6 +59,7 @@ function save() {
 }
 async function record(action,actor,target,reason='') { const c={number:state.cases.length+1,time:new Date().toISOString(),action,actor,target,reason}; state.cases.push(c); if(['ban','unban'].includes(action))await suite?.cancelTempBan(target); await appendFile(new URL(serverId+'.audit.jsonl',dir),JSON.stringify(c)+'\n'); await logger.enqueue(`Case #${c.number} | ${action}\nActor: ${actor} | Target: ${target}\n${reason||'No details supplied.'}`,'moderation',false); await save(); logger.requestFlush(); }
 const logger=new LogService({state,save,bot,serverId,autoFlush:true});
+const messageLogs=createMessageLogs({logger,bot,cfg});
 if(!state.logs.channelId&&cfg.logChannelId)state.logs.channelId=cfg.logChannelId;
 async function alert(text) { console.log(text); await logger.enqueue('PROTECTION ALERT | '+text,'protection'); }
 const isOwner=m=>String(m.author_id)===String(cfg.ownerId);
@@ -83,6 +85,7 @@ async function recover(){
  const channels=await bot.channels(cfg.serverId),cats=await bot.categories(cfg.serverId),map=new Map(cats.map(c=>[c.id,c.id]));let done=0,errors=[];
  for(const [old,replacement]of Object.entries(state.categoryReplacements))if(cats.some(c=>c.id===replacement))map.set(old,replacement);
  for(const c of Object.values(state.channels)){
+  if(c.private)continue; // No private-channel recreation attempts or repeated skip alerts.
   if(state.intentionalDeletes?.[c.id])continue;
   if(state.pending[c.id]&&channels.some(x=>x.id===state.replacements[c.id])){try{await bot.editChannel(state.replacements[c.id],settings(c));delete state.pending[c.id];await save();done++;}catch(e){errors.push(c.name+': settings retry failed: '+e.message);}continue;}
   if(channels.some(x=>x.id===c.id||x.id===state.replacements[c.id]))continue;
@@ -95,13 +98,14 @@ async function recover(){
    await bot.editChannel(made.id,opts);delete state.pending[c.id];await save();done++;await record('channel-restore','Vigil',c.id,'New ID '+made.id);
   }catch(e){errors.push(c.name+': '+e.message);}
  }
- await alert(`Recovery: ${done} recreated. ${errors.join(' | ')||'No errors.'} Old messages cannot be recovered.`);return done;
+ const summary=`Recovery: ${done} recreated. ${errors.join(' | ')||'No errors.'} Old messages cannot be recovered.`;
+ if((done||errors.length)&&state.lastRecoveryNotice!==summary){state.lastRecoveryNotice=summary;await save();await alert(summary);}return done;
 }
 async function poll(){if(busy)return;busy=true;try{
  cfg.ownerId=ownerFromServer(await bot.server(cfg.serverId));
  const channels=await bot.channels(cfg.serverId);
  if(!Object.keys(state.channels).length){await baseline();return;}
- const missing=Object.values(state.channels).filter(c=>!state.intentionalDeletes?.[c.id]&&!channels.some(x=>x.id===c.id||x.id===state.replacements[c.id]));
+ const missing=Object.values(state.channels).filter(c=>!c.private&&!state.intentionalDeletes?.[c.id]&&!channels.some(x=>x.id===c.id||x.id===state.replacements[c.id]));
  if(missing.length){if(!frozen){frozen=true;await alert(`CHANNEL LOSS: ${missing.length} missing; baseline frozen. Actor unavailable in SDK. Verify attacker then !quarantine USER_ID.`);}if((suite?.settings.autoRestore??cfg.autoRestore)&&missing.length>=cfg.deleteThreshold&&Date.now()-lastRecovery>=60000)await recover();}
  else if(Object.keys(state.pending).length&&(suite?.settings.autoRestore??cfg.autoRestore)&&Date.now()-lastRecovery>=60000){await recover();}
  else if(!frozen){for(const c of channels)if(!state.intentionalDeletes?.[c.id])state.channels[c.id]=c;for(const c of await bot.categories(cfg.serverId))state.categories[c.id]=c;await save();}
@@ -168,6 +172,7 @@ events.set('message',async m=>{if(String(m.server_id)!==String(cfg.serverId)||is
  const previousMessage=events.get('message');
  events.set('message',async m=>{
   if(String(m.server_id)!==String(cfg.serverId)||m.author_bot)return;
+  messageLogs.remember(m);
   try {if(await honeypot.handle(m))return;const ignored=!policy.settings.enabled||await policy.ignored(m);if(!ignored){if(await features.filter(m))return;if(await policy.handle(m))return;await previousMessage(m);}await features.custom(m);}
   catch(e){await alert('Message protection failed: '+e.message);}
  });
@@ -191,8 +196,9 @@ events.set('message',async m=>{if(String(m.server_id)!==String(cfg.serverId)||is
  for(const event of ['voice_join','voice_leave'])events.set(event,ev=>logger.enqueue(event.toUpperCase()+' | User: '+ev.user_id+' | Channel: '+ev.channel_id,'voice'));
  const previousJoin=events.get('member_join');
  events.set('member_join',async ev=>{// Skip the age log for accounts five days or older. Age lookup must not stop raid protection.
-  if(state.logs.enabled&&state.logs.channelId&&state.logTypes?.joins!==false){try{const user=await bot.user(ev.user_id),note=accountAgeNote(user,ev.user_id);if(note)await logger.enqueue('NEW ACCOUNT JOIN | '+note,'joins');}catch(e){console.error('Account-age lookup failed:',e.message);}}
+  if(state.logs.enabled&&state.logs.channelId&&state.logTypes?.joins!==false){try{const user=await bot.user(ev.user_id),note=accountAgeNote(user,ev.user_id);await logger.enqueue('MEMBER JOIN | '+String(user.username||user.display_name||'Member').replace(/@/g,'@\u200b')+' | '+ev.user_id+(note?'\n'+note:''),'joins');}catch(e){console.error('Account-age lookup failed:',e.message);}}
  try{await previousJoin(ev);await suite.onJoin(ev);}finally{await welcomer.join(ev);}});
+ events.set('message_delete',ev=>messageLogs.deleted(ev));
  events.set('member_leave',async ev=>{await logger.enqueue('MEMBER LEAVE | User: '+ev.user_id+' | Cause/actor not supplied by SDK.','leaves');});
  return {commands,accessLevels,handlers,events,poll,roleButtons,tickets:ticketSystem,flush:async()=>{await ticketSystem.flush();await queue;}};
 }
@@ -211,8 +217,8 @@ async function receiveTicketDM(message){
  try{await chosen.system.receive(chosen.ticket,message,text);await message.reply('Delivered to support ['+chosen.ticket.id+'].');}
  catch(e){await message.reply('Ticket delivery failed: '+String(e.message).replace(/@/g,'@\u200b').slice(0,500));}
 }
-for(const event of ['message','member_join','member_leave','voice_join','voice_leave','reaction_add','reaction_remove'])bot.on(event,ev=>withRequest(async()=>{
- if(!ev.server_id&&event.startsWith('reaction_')&&ev.channel_id){const channel=await bot.channel(ev.channel_id);if(channel?.server_id)ev={...ev,server_id:channel.server_id};}
+for(const event of ['message','member_join','member_leave','voice_join','voice_leave','reaction_add','reaction_remove','message_delete'])bot.on(event,ev=>withRequest(async()=>{
+ if(!ev.server_id&&(event.startsWith('reaction_')||event==='message_delete')&&ev.channel_id){const channel=await bot.channel(ev.channel_id);if(channel?.server_id)ev={...ev,server_id:channel.server_id};}
  if(!ev.server_id){if(event==='message')await receiveTicketDM(ev);return;}
  try{const protection=await registry.get(ev.server_id);if(event==='message'){const typed=typedCommand(ev,prefixOnly,bot.me?.id);if(typed){Object.assign(ev,typed);await protection.handlers.get(typed.command)?.(ev);}}await protection.events.get(event)?.(ev);}
  catch(e){console.error('Event routing failed:',e.message);}
