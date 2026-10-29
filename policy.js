@@ -1,14 +1,17 @@
 const clean=s=>String(s||'').replace(/@/g,'@\u200b').slice(0,1800);
 export function installPolicy({state,save,command,bot,cfg,hasAdmin,record}){
- state.policy||={enabled:true,flags:{spam:true,mentions:true,everyone:true,links:false,invites:false,caps:false,emoji:false,duplicate:false,zalgo:false,phishing:false},allowedDomains:[],blockedDomains:[],ignoredUsers:[],ignoredRoles:[],ignoredChannels:[],action:'timeout',minutes:5};
+ state.policy||={enabled:true,flags:{spam:true,mentions:true,everyone:true,links:true,invites:true,caps:false,emoji:false,duplicate:false,zalgo:false,phishing:false},allowedDomains:[],blockedDomains:[],ignoredUsers:[],ignoredRoles:[],ignoredChannels:[],action:'timeout',minutes:5};
  const p=state.policy,last=new Map(),cooldown=new Map();
+ // Apply this requested protection once to existing servers; later admin changes are preserved.
+ if(!p.linkTimeoutV1){p.enabled=true;p.flags.links=true;p.flags.invites=true;p.action='timeout';p.minutes=5;p.linkTimeoutV1=true;}
+
  const setting=async()=>{await save();};
  async function ignored(m){if(p.ignoredChannels.includes(String(m.channel_id))||p.ignoredUsers.includes(String(m.author_id)))return true;if(p.ignoredRoles.length){const member=await bot.member(cfg.serverId,m.author_id),ids=member?.role_ids??member?.roles??[];if(ids.some(r=>p.ignoredRoles.includes(String(typeof r==='object'?r.id:r))))return true;}return false;}
  function inspect(content,user='test',now=Date.now(),mutate=true){
-  const text=String(content||'').slice(0,4000),reasons=[];
+  const text=String(content||'').normalize('NFKC').replace(/[\u200B-\u200D\uFEFF]/g,'').slice(0,4000),reasons=[];
   const domains=[];for(const match of text.matchAll(/https?:\/\/[^\s<>]+/gi)){try{domains.push(new URL(match[0]).hostname.toLowerCase());}catch{}}
   const allowed=host=>p.allowedDomains.some(d=>host===d||host.endsWith('.'+d));
-  if(p.flags.links&&domains.some(d=>!allowed(d)))reasons.push('link');
+  if(p.flags.links&&(domains.some(d=>!allowed(d))||(/https?:|www\./i.test(text)&&domains.length===0)))reasons.push('link');
   if(p.flags.invites&&/(?:yapin\.gg|yapper\.website)\/invite\/|discord\.gg\/|discord(?:app)?\.com\/invite\//i.test(text))reasons.push('invite');
   if(p.flags.phishing&&domains.some(d=>p.blockedDomains.some(b=>d===b||d.endsWith('.'+b))))reasons.push('blocked domain');
   const letters=text.match(/[a-z]/gi)||[],upper=text.match(/[A-Z]/g)||[];
