@@ -160,7 +160,7 @@ events.set('member_join',ev=>{
 events.set('message',async m=>{if(String(m.server_id)!==String(cfg.serverId)||isOwner(m)||m.author_bot)return;
  const text=String(m.content||''),flood=policy.settings.flags.spam&&counter.hit('spam:'+m.author_id,8000)>=cfg.spamThreshold,mentions=(policy.settings.flags.mentions&&(text.match(/<@/g)||[]).length>=cfg.mentionThreshold)||(policy.settings.flags.everyone&&/@everyone|@here/i.test(text));
  if(!flood&&!mentions)return;if(Date.now()-(punishCooldown.get(m.author_id)||0)<30000)return;punishCooldown.set(m.author_id,Date.now());
- try{if(await hasAdmin(m.author_id))return;const results=await Promise.allSettled([bot.delete(m.channel_id,m.id),bot.timeout(cfg.serverId,m.author_id,5,'Flood or mass mentions')]);await record('automod-timeout','Vigil',m.author_id,results.map((r,i)=>(i?'timeout':'delete')+': '+r.status+(r.reason?' '+r.reason.message:'')).join('; '));}catch(e){await alert('Automod failed: '+e.message);}
+ try{if(await hasAdmin(m.author_id))return;const results=await Promise.allSettled([bot.delete(m.channel_id,m.id),bot.timeout(cfg.serverId,m.author_id,5,'Flood or mass mentions')]);await record('automod-timeout','Vigil',m.author_id,'Reason: Flood or mass mentions | Text: '+String(m.content||'').replace(/@/g,'@\u200b').slice(0,650)+' | '+results.map((r,i)=>(i?'timeout':'delete')+': '+r.status+(r.reason?' '+r.reason.message:'')).join('; '));}catch(e){await alert('Automod failed: '+e.message);}
 });
 
  ticketSystem=installTickets({state,save,command,bot,cfg,hasAdmin,record});
@@ -172,7 +172,7 @@ events.set('message',async m=>{if(String(m.server_id)!==String(cfg.serverId)||is
  const previousMessage=events.get('message');
  events.set('message',async m=>{
   if(String(m.server_id)!==String(cfg.serverId)||m.author_bot)return;
-  messageLogs.remember(m);
+  try{await messageLogs.sent(m);}catch(e){console.error('Message log failed:',e.message);messageLogs.remember(m);}
   try {if(await honeypot.handle(m))return;const ignored=!policy.settings.enabled||await policy.ignored(m);if(!ignored){if(await features.filter(m))return;if(await policy.handle(m))return;await previousMessage(m);}await features.custom(m);}
   catch(e){await alert('Message protection failed: '+e.message);}
  });
@@ -188,7 +188,7 @@ events.set('message',async m=>{if(String(m.server_id)!==String(cfg.serverId)||is
   const [sub,arg]=m.argv;if(!sub||sub==='status')return originalLogs({...m,argv:[]});
   if(sub==='setup')return handlers.get('setlogs')({...m,argv:[]});
   const type=sub==='disable'?arg:sub,value=sub==='disable'?'off':arg;
-  if(!['joins','leaves','voice','moderation','protection','general'].includes(type)||!['on','off'].includes(value))throw Error('Use logs TYPE on|off. Types: joins, leaves, voice, moderation, protection, general.');
+  if(!['joins','leaves','voice','messages','moderation','protection','general'].includes(type)||!['on','off'].includes(value))throw Error('Use logs TYPE on|off. Types: joins, leaves, voice, messages, moderation, protection, general.');
   state.logTypes[type]=value==='on';await save();await m.reply(type+' logs '+value+'. Local audit is retained.');
  });
  for(const [name,type]of [['joinlog','joins'],['leavelog','leaves']])command(name,'on|off: configure server log category',m=>handlers.get('logs')({...m,argv:[type,m.argv[0]]}));
@@ -199,6 +199,8 @@ events.set('message',async m=>{if(String(m.server_id)!==String(cfg.serverId)||is
   if(state.logs.enabled&&state.logs.channelId&&state.logTypes?.joins!==false){try{const user=await bot.user(ev.user_id),note=accountAgeNote(user,ev.user_id);await logger.enqueue('MEMBER JOIN | '+String(user.username||user.display_name||'Member').replace(/@/g,'@\u200b')+' | '+ev.user_id+(note?'\n'+note:''),'joins');}catch(e){console.error('Account-age lookup failed:',e.message);}}
  try{await previousJoin(ev);await suite.onJoin(ev);}finally{await welcomer.join(ev);}});
  events.set('message_delete',ev=>messageLogs.deleted(ev));
+ events.set('message_edit',ev=>messageLogs.edited(ev));
+ events.set('message_update',ev=>messageLogs.edited(ev));
  events.set('member_leave',async ev=>{await logger.enqueue('MEMBER LEAVE | User: '+ev.user_id+' | Cause/actor not supplied by SDK.','leaves');});
  return {commands,accessLevels,handlers,events,poll,roleButtons,tickets:ticketSystem,flush:async()=>{await ticketSystem.flush();await queue;}};
 }
@@ -217,8 +219,8 @@ async function receiveTicketDM(message){
  try{await chosen.system.receive(chosen.ticket,message,text);await message.reply('Delivered to support ['+chosen.ticket.id+'].');}
  catch(e){await message.reply('Ticket delivery failed: '+String(e.message).replace(/@/g,'@\u200b').slice(0,500));}
 }
-for(const event of ['message','member_join','member_leave','voice_join','voice_leave','reaction_add','reaction_remove','message_delete'])bot.on(event,ev=>withRequest(async()=>{
- if(!ev.server_id&&(event.startsWith('reaction_')||event==='message_delete')&&ev.channel_id){const channel=await bot.channel(ev.channel_id);if(channel?.server_id)ev={...ev,server_id:channel.server_id};}
+for(const event of ['message','member_join','member_leave','voice_join','voice_leave','reaction_add','reaction_remove','message_delete','message_edit','message_update'])bot.on(event,ev=>withRequest(async()=>{
+ if(!ev.server_id&&(event.startsWith('reaction_')||['message_delete','message_edit','message_update'].includes(event))&&ev.channel_id){const channel=await bot.channel(ev.channel_id);if(channel?.server_id)ev={...ev,server_id:channel.server_id};}
  if(!ev.server_id){if(event==='message')await receiveTicketDM(ev);return;}
  try{const protection=await registry.get(ev.server_id);if(event==='message'){const typed=typedCommand(ev,prefixOnly,bot.me?.id);if(typed){Object.assign(ev,typed);await protection.handlers.get(typed.command)?.(ev);}}await protection.events.get(event)?.(ev);}
  catch(e){console.error('Event routing failed:',e.message);}

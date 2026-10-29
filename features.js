@@ -70,7 +70,7 @@ export function installFeatures({state,save,command,commands,handlers,hasAdmin,b
   // Attempt both actions even if deletion lacks permission; report individual failures.
   const results=await Promise.allSettled([bot.delete(m.channel_id,m.id),bot.timeout(cfg.serverId,m.author_id,minutes,'Vigil chat filter')]);
   f.violations[m.author_id]=(f.violations[m.author_id]||0)+1;
-  await record('swear-filter','Vigil',m.author_id,results.map((r,i)=>`${i===0?'delete':'timeout'}: ${r.status}${r.reason?': '+r.reason.message:''}`).join('; '));
+  await record('swear-filter','Vigil',m.author_id,'Reason: blocked language | Text: '+String(m.content||'').replace(/@/g,'@\u200b').slice(0,650)+' | Timeout: '+minutes+' minutes | '+results.map((r,i)=>`${i===0?'delete':'timeout'}: ${r.status}${r.reason?': '+r.reason.message:''}`).join('; '));
   if(f.autoWarn){try{await m.reply('Warning: blocked language. Follow the server chat rules. Warnings: '+state.warnings[m.author_id].length+'.');}catch(e){await record('warning-notice-failed','Vigil',m.author_id,e.message);}}
   return true;
  },
